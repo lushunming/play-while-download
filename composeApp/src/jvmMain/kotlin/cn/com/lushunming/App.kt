@@ -1,20 +1,17 @@
 package cn.com.lushunming
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.VerticalScrollbar
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.rememberScrollbarAdapter
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationRail
@@ -33,19 +30,13 @@ import cn.com.lushunming.server.startServer
 import cn.com.lushunming.service.DatabaseFactory
 import cn.com.lushunming.views.Download
 import cn.com.lushunming.views.Setting
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import okhttp3.internal.wait
-import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
-import play_while_download.composeapp.generated.resources.Res
-import play_while_download.composeapp.generated.resources.compose_multiplatform
 
 // 定义应用的页面
 enum class AppScreen {
-    Home, Downloads, Settings
+    /*  Home, */Downloads, Settings
 }
 
 @Composable
@@ -53,14 +44,11 @@ enum class AppScreen {
 fun App() {
     MaterialTheme {
         // 当前显示的页面
-        var currentScreen by remember { mutableStateOf(AppScreen.Home) }
+        var currentScreen by remember { mutableStateOf(AppScreen.Downloads) }
+
+
         LaunchedEffect(Unit) {
-            withContext(Dispatchers.IO) {
-                DatabaseFactory.connectAndMigrate()
-                startServer(
-                    args = emptyArray()
-                );
-            }
+
         }
         Row(
             modifier = Modifier.fillMaxSize()
@@ -69,46 +57,48 @@ fun App() {
             NavigationRail(
                 modifier = Modifier.fillMaxHeight().width(80.dp) // 设置固定宽度
             ) {
-                NavigationRailItem(
+                /*NavigationRailItem(
                     icon = { Icon(Icons.Default.Home, contentDescription = "主页") },
                     label = { Text("主页") },
                     selected = currentScreen == AppScreen.Home,
-                    onClick = { currentScreen = AppScreen.Home })
+                    onClick = { currentScreen = AppScreen.Home })*/
                 NavigationRailItem(
                     icon = {
-                    Icon(
-                        Icons.Default.Download, contentDescription = "下载"
-                    )
-                },
+                        Icon(
+                            Icons.Default.Download, contentDescription = "下载"
+                        )
+                    },
                     label = { Text("下载") },
                     selected = currentScreen == AppScreen.Downloads,
                     onClick = { currentScreen = AppScreen.Downloads })
                 NavigationRailItem(
                     icon = {
-                    Icon(
-                        Icons.Default.Settings, contentDescription = "设置"
-                    )
-                },
+                        Icon(
+                            Icons.Default.Settings, contentDescription = "设置"
+                        )
+                    },
                     label = { Text("设置") },
                     selected = currentScreen == AppScreen.Settings,
                     onClick = { currentScreen = AppScreen.Settings })
             }
-
+            val stateVertical = rememberScrollState(0)
             // 右侧内容区域 - 占据剩余空间
             Box(
-                modifier = Modifier.fillMaxSize().weight(1f) // 占据剩余空间
+                modifier = Modifier.fillMaxSize().weight(1f)
+
             ) {
                 when (currentScreen) {
-                    AppScreen.Home -> HomeScreen()
+                    // AppScreen.Home -> HomeScreen()
                     AppScreen.Downloads -> Download()
                     AppScreen.Settings -> Setting()
                 }
             }
+
         }
     }
 }
 
-@Composable
+/*@Composable
 fun HomeScreen() {
     var showContent by remember { mutableStateOf(false) }
 
@@ -131,4 +121,4 @@ fun HomeScreen() {
             }
         }
     }
-}
+}*/

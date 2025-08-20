@@ -1,5 +1,6 @@
 package cn.com.lushunming.server.plugin
 
+import androidx.lifecycle.viewModelScope
 import cn.com.lushunming.models.Downloads
 import cn.com.lushunming.server.M3u8ProxyServer
 import cn.com.lushunming.server.ProxyServer
@@ -40,7 +41,7 @@ fun Application.configureRouting() {
 
     val configService = ConfigService()
     val service = TaskService()
-    val viewModel = TaskViewModel(service)
+    val viewModel = TaskViewModel()
 
 
 
@@ -126,13 +127,15 @@ fun Application.configureRouting() {
             if (urlParam.contains("m3u8")) {
                 type = "application/x-mpegURL"
                 val dir = path + File.separator + Util.md5(urlParam)
-                val job = CoroutineScope(Dispatchers.IO).launch {
+                val job = viewModel.viewModelScope.launch(Dispatchers.IO) {
                     File(dir).mkdirs()
                     val headerFile = File(dir, "header.tmp")
                     headerFile.writeText(Util.json(headerParam))
                     startDownload(
                         dir, urlParam, headerParam
-                    )
+                    ) { taskId: String, progress: Int ->
+                        viewModel.updateProgress(id, progress)
+                    }
                 }
                 jobMap[id] = job
             }

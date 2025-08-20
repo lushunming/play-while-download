@@ -64,4 +64,14 @@ class TaskService {
         }
 
     }
+
+    fun updateStatus(id: String, downloading: DownloadStatus) {
+
+
+        DatabaseFactory.dbQuery {
+            Tasks.update(where = { Tasks.id eq id }) {
+                it[Tasks.status] = downloading.ordinal
+            }
+        }
+    }
 }

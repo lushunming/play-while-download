@@ -1,15 +1,22 @@
 package cn.com.lushunming.server
 
+import androidx.lifecycle.viewModelScope
 import cn.com.lushunming.models.DownloadStatus
-import cn.com.lushunming.service.TaskService
 import cn.com.lushunming.util.HttpClientUtil
 import cn.com.lushunming.util.Util
 import cn.com.lushunming.viewmodel.TaskViewModel
-import io.ktor.client.statement.*
-import kotlinx.coroutines.*
+import io.ktor.client.statement.bodyAsBytes
+import io.ktor.client.statement.bodyAsText
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
 import java.io.File
 
@@ -50,12 +57,18 @@ class M3U8Downloader(private val outputDir: String) {
 
                 !line.startsWith("#") && line.isNotBlank() -> {
                     // 处理TS文件URL
-                    tsUrls.add(if (line.startsWith("http")) line else resolveRelativeUrl(m3u8Url, line))
+                    tsUrls.add(
+                        if (line.startsWith("http")) line else resolveRelativeUrl(
+                            m3u8Url, line
+                        )
+                    )
                 }
             }
         }
 
-        return M3U8Info(infoLines, tsUrls, keyUrl?.let { resolveRelativeUrl(m3u8Url, it) }, iv, m3u8Url)
+        return M3U8Info(
+            infoLines, tsUrls, keyUrl?.let { resolveRelativeUrl(m3u8Url, it) }, iv, m3u8Url
+        )
     }
 
     private fun resolveRelativeUrl(baseUrl: String, relativePath: String): String {
@@ -76,7 +89,7 @@ class M3U8Downloader(private val outputDir: String) {
         }
     }
 
-    suspend fun downloadAllFiles(m3u8Info: M3U8Info, headers: Map<String, String>) {
+    suspend fun downloadAllFiles(m3u8Info: M3U8Info, headers: Map<String, String>, callback: (id: String, progress: Int) -> Unit) {
         // 创建输出目录
         val dir = File(outputDir)
         if (!dir.exists()) dir.mkdirs()
@@ -97,21 +110,21 @@ class M3U8Downloader(private val outputDir: String) {
              downloadFile(tsUrl, tsFile)
          }*/
 
-        val taskService = TaskService()
-        val taskViewModel= TaskViewModel(taskService)
+
+        val taskViewModel = TaskViewModel()
         download(m3u8Info.tsUrls, headers, dir).collect { it ->
             when (it) {
                 is DownloadStatus.Progress -> {
                     logger.info("已下载 ${it.value} %")
-                    CoroutineScope(Dispatchers.IO).launch {
-                        taskViewModel.updateProgress(Util.md5(m3u8Info.url), it.value )
+                    taskViewModel.viewModelScope.launch(Dispatchers.IO) {
+                        callback(Util.md5(m3u8Info.url), it.value)
                     }
                 }
 
                 is DownloadStatus.Done -> {
                     logger.info("下载完成")
-                    CoroutineScope(Dispatchers.IO).launch {
-                        taskViewModel.updateProgress(Util.md5(m3u8Info.url), 100)
+                    taskViewModel.viewModelScope.launch(Dispatchers.IO) {
+                        callback(Util.md5(m3u8Info.url), 100)
                     }
                 }
 
@@ -151,7 +164,13 @@ class M3U8Downloader(private val outputDir: String) {
                 }
                 deferredList.awaitAll()
                 // onProgress(min((batchIndex) * batchSize + batch.size, total), total)
-                emit(DownloadStatus.Progress((batchIndex* batchSize + batch.size)* 100 / total .floorDiv(1)))
+                emit(
+                    DownloadStatus.Progress(
+                        (batchIndex * batchSize + batch.size) * 100 / total.floorDiv(
+                            1
+                        )
+                    )
+                )
             }
             emit(DownloadStatus.Done(dir))
         }.catch {
@@ -160,7 +179,9 @@ class M3U8Downloader(private val outputDir: String) {
         }
     }
 
-    private suspend fun downloadWithRetry(url: String, headers: Map<String, String>, index: Int, dir: File) {
+    private suspend fun downloadWithRetry(
+        url: String, headers: Map<String, String>, index: Int, dir: File
+    ) {
         var retryCount = 0
         var success = false
 
@@ -220,11 +241,20 @@ private fun generateLocalM3U8(m3u8Info: M3U8Info, dir: File) {
 
 
 data class M3U8Info(
-    val infoLines: List<String>, val tsUrls: List<String>, val keyUrl: String?, val iv: String?, val url: String
+    val infoLines: List<String>,
+    val tsUrls: List<String>,
+    val keyUrl: String?,
+    val iv: String?,
+    val url: String
 )
 
 
-suspend fun startDownload(outputDir: String, m3u8Url: String, headers: Map<String, String>) {
+suspend fun startDownload(
+    outputDir: String,
+    m3u8Url: String,
+    headers: Map<String, String>,
+    callback: (id: String, progress: Int) -> Unit
+) {
 
 
     val downloader = M3U8Downloader(outputDir)
@@ -236,7 +266,7 @@ suspend fun startDownload(outputDir: String, m3u8Url: String, headers: Map<Strin
         logger.info("解析完成，找到${m3u8Info.tsUrls.size}个TS片段")
 
         // 下载所有文件
-        downloader.downloadAllFiles(m3u8Info, headers)
+        downloader.downloadAllFiles(m3u8Info, headers,callback)
         logger.info("文件下载完成")
 
 
@@ -262,7 +292,9 @@ fun main() = runBlocking {
         logger.info("解析完成，找到${m3u8Info.tsUrls.size}个TS片段")
 
         // 下载所有文件
-        downloader.downloadAllFiles(m3u8Info, headers)
+        downloader.downloadAllFiles(m3u8Info, headers, { id, progress ->
+            logger.info("下载进度: $id $progress %")
+        })
         logger.info("文件下载完成")
 
 

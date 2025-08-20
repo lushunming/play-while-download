@@ -1,11 +1,13 @@
 package cn.com.lushunming.views
 
+import androidx.compose.foundation.VerticalScrollbar
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -13,6 +15,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeContentPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollbarAdapter
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
@@ -35,33 +39,25 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import cn.com.lushunming.server.startDownload
 import cn.com.lushunming.service.ConfigService
-import cn.com.lushunming.service.TaskService
 import cn.com.lushunming.util.Constant.jobMap
 import cn.com.lushunming.viewmodel.ConfigViewModel
 import cn.com.lushunming.viewmodel.TaskViewModel
-import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.launch
 import model.DownloadStatus
 import model.Task
 import java.io.File
 
 @Composable
-fun Download( ) {
+fun Download() {
     //下载任务
-    val service = TaskService()
-    val taskViewModel = viewModel{TaskViewModel(service)}
+
+    val taskViewModel = viewModel { TaskViewModel() }
     val downloadTasks by taskViewModel.tasks.collectAsState()
+
     //配置
     val configService = ConfigService()
     val configViewModel = ConfigViewModel(configService)
     val config by configViewModel.config.collectAsState()
-
 
 
 
@@ -80,6 +76,7 @@ fun Download( ) {
         Card(
             modifier = Modifier.fillMaxWidth().weight(1f)
         ) {
+            val state = rememberLazyListState()
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(8.dp),
@@ -89,7 +86,7 @@ fun Download( ) {
                     DownloadTaskItem(task = task, onStart = {
                         // 启动下载任务
                         val path = config.downloadPath
-                        taskViewModel.startDownload(task.id,path)
+                        taskViewModel.startDownload(task, path)
 
                     }, onPause = {
                         // 暂停下载任务
@@ -118,6 +115,12 @@ fun Download( ) {
                     })
                 }
             }
+            VerticalScrollbar(
+                modifier = Modifier.align(Alignment.Start).fillMaxHeight(),
+                adapter = rememberScrollbarAdapter(
+                    scrollState = state
+                )
+            )
         }
 
         // 添加新下载任务的按钮
@@ -130,6 +133,8 @@ fun Download( ) {
             Icon(Icons.Default.Add, contentDescription = "添加下载任务")
         }
     }
+
+
 }
 
 @Composable
