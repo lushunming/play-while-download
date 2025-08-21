@@ -1,5 +1,6 @@
 package cn.com.lushunming.views
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.VerticalScrollbar
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -22,6 +23,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Start
 import androidx.compose.material3.Card
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -31,13 +33,20 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Color.Companion.Blue
+import androidx.compose.ui.graphics.Color.Companion.Green
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Window
 import androidx.lifecycle.viewmodel.compose.viewModel
 import cn.com.lushunming.service.ConfigService
 import cn.com.lushunming.util.Constant.jobMap
@@ -59,7 +68,16 @@ fun Download() {
     val configViewModel = ConfigViewModel(configService)
     val config by configViewModel.config.collectAsState()
 
+    var urlForVideoWindow by remember { mutableStateOf<String?>(null) }
 
+    LaunchedEffect(Unit) {
+        for (task in downloadTasks) {
+            if(task.status!= DownloadStatus.COMPLETED){
+                taskViewModel.startDownload(task, config.downloadPath)
+            }
+
+        }
+    }
 
     Column(
         modifier = Modifier.background(MaterialTheme.colorScheme.primaryContainer)
@@ -111,7 +129,10 @@ fun Download() {
 
                     }, onPlay = {
                         // 播放下载的文件
+                        urlForVideoWindow=task.url
                         println("播放文件: ${task.name}")
+
+
                     })
                 }
             }
@@ -134,15 +155,20 @@ fun Download() {
         }
     }
 
-
+    urlForVideoWindow?.let { url ->
+        Video(url) { urlForVideoWindow = null }
+    }
 }
+
+
+
 
 @Composable
 fun DownloadTaskItem(
     task: Task, onStart: () -> Unit, onPause: () -> Unit, onDelete: () -> Unit, onPlay: () -> Unit
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth().padding(4.dp)
+        modifier = Modifier.fillMaxWidth().padding(4.dp), border = BorderStroke(1.dp, color =Blue)
     ) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(16.dp)
@@ -195,12 +221,12 @@ fun DownloadTaskItem(
             ) {
                 // 播放按钮（仅当下载完成时可用）
                 IconButton(
-                    onClick = onPlay, enabled = task.status == DownloadStatus.COMPLETED
+                    onClick = onPlay, enabled = (task.progress >= 5||task.type.contains("mp4"))
                 ) {
                     Icon(
                         Icons.Default.PlayArrow,
                         contentDescription = "播放",
-                        tint = if (task.status == DownloadStatus.COMPLETED) MaterialTheme.colorScheme.primary
+                        tint = if (task.progress >= 5||task.type.contains("mp4")) MaterialTheme.colorScheme.primary
                         else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
                     )
                 }
@@ -217,7 +243,7 @@ fun DownloadTaskItem(
                 ) {
                     Icon(
                         if (task.status == DownloadStatus.DOWNLOADING) Icons.Default.Pause
-                        else Icons.Default.PlayArrow,
+                        else Icons.Default.Start,
                         contentDescription = if (task.status == DownloadStatus.DOWNLOADING) "暂停" else "开始",
                         tint = if (task.status != DownloadStatus.COMPLETED) MaterialTheme.colorScheme.primary
                         else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)

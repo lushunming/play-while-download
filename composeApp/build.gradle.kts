@@ -48,6 +48,8 @@ kotlin {
             implementation("com.h2database:h2:2.2.224")
             implementation("com.zaxxer:HikariCP:${hikariCpVersion}")
             implementation("org.flywaydb:flyway-core:${flywayVersion}")
+            implementation("network.chaintech:compose-multiplatform-media-player:1.0.42")
+
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

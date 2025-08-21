@@ -35,7 +35,7 @@ import java.io.File
 
 
 fun Application.configureRouting() {
-    val port = environment.config.port
+    val port = Constant.port
     val logger = LoggerFactory.getLogger(Application::class.java)
     val taskService = TaskService()
 
@@ -142,7 +142,7 @@ fun Application.configureRouting() {
 
             viewModel.addTask(
                 Task(
-                    id, download.list[0].filename, url, urlParam, type, 0, DownloadStatus.PENDING
+                    id, download.list[0].filename, url, urlParam, type, 0, DownloadStatus.DOWNLOADING
                 )
             )
 

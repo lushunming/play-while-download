@@ -45,6 +45,7 @@ class TaskViewModel() : ViewModel() {
 
     fun deleteTask(id: String) {
         viewModelScope.launch {
+            jobMap.remove(id)
             service.deleteTask(id)
             getTaskList()
         }
@@ -95,6 +96,7 @@ class TaskViewModel() : ViewModel() {
 
     fun pauseDownload(id: String) {
         viewModelScope.launch {
+            jobMap.remove(id)
             service.updateStatus(id, model.DownloadStatus.PAUSED)
             getTaskList()
         }
