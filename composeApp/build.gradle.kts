@@ -37,7 +37,9 @@ kotlin {
             implementation("io.ktor:ktor-server-netty")
            /* implementation("io.ktor:ktor-server-config-yaml")
             implementation("io.ktor:ktor-server-websockets")*/
+/*
             implementation("io.ktor:ktor-server-thymeleaf")
+*/
 
             implementation("io.ktor:ktor-client-core")
             implementation("io.ktor:ktor-client-okhttp")
@@ -73,8 +75,25 @@ compose.desktop {
 
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
-            packageName = "cn.com.lushunming"
+            packageName = "play-while-download"
             packageVersion = "1.0.0"
+            modules("java.compiler", "java.instrument", "java.management", "java.naming", "java.net.http", "java.prefs", "java.sql", "jdk.jfr", "jdk.jsobject", "jdk.unsupported", "jdk.unsupported.desktop", "jdk.xml.dom")
+
+            windows {
+                iconFile.set(project.file("src/jvmMain/composeResources/drawable/icon.ico"))
+                dirChooser = true
+                upgradeUuid = "161FA5A0-A30B-4568-9E84-B3CD637CC8FE"
+                shortcut = true
+            }
+
+            linux {
+                iconFile.set(project.file("src/jvmMain/composeResources/drawable/icon_main.png"))
+            }
+
+            macOS {
+                iconFile.set(project.file("src/jvmMain/composeResources/drawable/icon.icns"))
+            }
+
         }
     }
 }

@@ -1,5 +1,6 @@
 package cn.com.lushunming.service
 
+import cn.com.lushunming.util.Paths
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import org.flywaydb.core.Flyway
@@ -22,7 +23,7 @@ object DatabaseFactory {
     private fun hikari(): HikariDataSource {
         val config = HikariConfig().apply {
             driverClassName = "org.h2.Driver"
-            jdbcUrl = "jdbc:h2:./db/m3u8-proxy"
+            jdbcUrl = Paths.db()
             maximumPoolSize = 3
             isAutoCommit = false
             transactionIsolation = "TRANSACTION_REPEATABLE_READ"

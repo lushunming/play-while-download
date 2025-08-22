@@ -20,7 +20,6 @@ import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
-import io.ktor.server.thymeleaf.ThymeleafContent
 import model.DownloadStatus
 import model.Task
 import org.koin.java.KoinJavaComponent.inject
@@ -48,18 +47,7 @@ fun Application.configureRouting() {
         get("/") {
             call.respondText("ktor is running .....")
         }
-        get("/video/{id}") {
-            val id = call.parameters["id"]
-            val task = taskService.getTaskById(id!!)
-            call.respond(
-                ThymeleafContent(
-                    "video", mapOf(
-                        "url" to (task?.url ?: ""),
-                        "type" to (task?.type ?: "application/x-mpegURL")
-                    )
-                )
-            )
-        }
+
 
         get("/proxy") {
             logger.info("代理中: ${call.parameters["url"]}")
