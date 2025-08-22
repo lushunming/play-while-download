@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cn.com.lushunming.models.AppConfig
 import cn.com.lushunming.service.ConfigService
+import cn.com.lushunming.util.HttpClientUtil.setProxy
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -26,6 +27,11 @@ class ConfigViewModel(private val service: ConfigService) : ViewModel() {
 
     fun saveConfig(config: AppConfig) {
         viewModelScope.launch {
+            if (config.open == 1) {
+                setProxy(config.proxy)
+            } else {
+                setProxy(null)
+            }
             service.saveConfig(config)
 
         }

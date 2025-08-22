@@ -43,24 +43,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Color.Companion.Blue
-import androidx.compose.ui.graphics.Color.Companion.Green
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Window
-import androidx.lifecycle.viewmodel.compose.viewModel
 import cn.com.lushunming.service.ConfigService
-import cn.com.lushunming.util.Constant.jobMap
 import cn.com.lushunming.viewmodel.ConfigViewModel
 import cn.com.lushunming.viewmodel.TaskViewModel
 import model.DownloadStatus
 import model.Task
-import java.io.File
+import org.koin.compose.koinInject
 
 @Composable
 fun Download() {
     //下载任务
-
-    val taskViewModel = viewModel { TaskViewModel() }
+    //val taskViewModel = koinViewModel<TaskViewModel>()
+    val taskViewModel = koinInject<TaskViewModel>()
+    //  val taskViewModel = viewModel { TaskViewModel() }
     val downloadTasks by taskViewModel.tasks.collectAsState()
 
     //配置
@@ -72,7 +69,7 @@ fun Download() {
 
     LaunchedEffect(Unit) {
         for (task in downloadTasks) {
-            if(task.status!= DownloadStatus.COMPLETED){
+            if (task.status != DownloadStatus.COMPLETED) {
                 taskViewModel.startDownload(task, config.downloadPath)
             }
 
@@ -109,27 +106,17 @@ fun Download() {
                     }, onPause = {
                         // 暂停下载任务
                         taskViewModel.pauseDownload(task.id)
-                        //取消协程
-                        val id = task.id
-                        val job = jobMap[id]
-                        job?.cancel()
+
                     }, onDelete = {
-                        //取消协程
-                        val id = task.id
-                        val job = jobMap[id]
-                        job?.cancel()
-                        //删除文件
-                        val path = config.downloadPath
-                        val dir = path + File.separator + id
-                        File(dir).deleteRecursively()
+
                         // 删除下载任务
-                        taskViewModel.deleteTask(task.id)
+                        taskViewModel.deleteTask(task.id, config.downloadPath)
 
                         //TODO 提示删除成功
 
                     }, onPlay = {
                         // 播放下载的文件
-                        urlForVideoWindow=task.url
+                        urlForVideoWindow = task.url
                         println("播放文件: ${task.name}")
 
 
@@ -161,14 +148,12 @@ fun Download() {
 }
 
 
-
-
 @Composable
 fun DownloadTaskItem(
     task: Task, onStart: () -> Unit, onPause: () -> Unit, onDelete: () -> Unit, onPlay: () -> Unit
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth().padding(4.dp), border = BorderStroke(1.dp, color =Blue)
+        modifier = Modifier.fillMaxWidth().padding(4.dp), border = BorderStroke(1.dp, color = Blue)
     ) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(16.dp)
@@ -221,12 +206,12 @@ fun DownloadTaskItem(
             ) {
                 // 播放按钮（仅当下载完成时可用）
                 IconButton(
-                    onClick = onPlay, enabled = (task.progress >= 5||task.type.contains("mp4"))
+                    onClick = onPlay, enabled = (task.progress >= 5 || task.type.contains("mp4"))
                 ) {
                     Icon(
                         Icons.Default.PlayArrow,
                         contentDescription = "播放",
-                        tint = if (task.progress >= 5||task.type.contains("mp4")) MaterialTheme.colorScheme.primary
+                        tint = if (task.progress >= 5 || task.type.contains("mp4")) MaterialTheme.colorScheme.primary
                         else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
                     )
                 }

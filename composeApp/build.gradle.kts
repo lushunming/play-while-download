@@ -2,6 +2,7 @@ import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 val hikariCpVersion = "5.0.1"
 val flywayVersion = "8.5.4"
 val logback_version= "1.4.14"
+val koin_version= "4.0.3"
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -49,7 +50,10 @@ kotlin {
             implementation("com.zaxxer:HikariCP:${hikariCpVersion}")
             implementation("org.flywaydb:flyway-core:${flywayVersion}")
             implementation("network.chaintech:compose-multiplatform-media-player:1.0.42")
-
+            implementation("io.insert-koin:koin-compose:${koin_version}")
+            implementation("io.insert-koin:koin-compose-viewmodel:${koin_version}")
+            implementation("io.insert-koin:koin-compose-viewmodel-navigation:${koin_version}")
+            implementation("io.insert-koin:koin-core:${koin_version}")
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

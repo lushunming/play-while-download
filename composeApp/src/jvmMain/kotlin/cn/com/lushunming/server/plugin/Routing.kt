@@ -1,21 +1,17 @@
 package cn.com.lushunming.server.plugin
 
-import androidx.lifecycle.viewModelScope
 import cn.com.lushunming.models.Downloads
 import cn.com.lushunming.server.M3u8ProxyServer
 import cn.com.lushunming.server.ProxyServer
-import cn.com.lushunming.server.startDownload
 import cn.com.lushunming.service.ConfigService
 import cn.com.lushunming.service.TaskService
 import cn.com.lushunming.util.Constant
-import cn.com.lushunming.util.Constant.jobMap
 import cn.com.lushunming.util.Util
 import cn.com.lushunming.viewmodel.TaskViewModel
 import com.google.gson.Gson
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.server.application.Application
-import io.ktor.server.application.port
 import io.ktor.server.request.receive
 import io.ktor.server.response.header
 import io.ktor.server.response.respond
@@ -25,11 +21,9 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.routing
 import io.ktor.server.thymeleaf.ThymeleafContent
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import model.DownloadStatus
 import model.Task
+import org.koin.java.KoinJavaComponent.inject
 import org.slf4j.LoggerFactory
 import java.io.File
 
@@ -40,8 +34,7 @@ fun Application.configureRouting() {
     val taskService = TaskService()
 
     val configService = ConfigService()
-    val service = TaskService()
-    val viewModel = TaskViewModel()
+
 
 
 
@@ -122,33 +115,54 @@ fun Application.configureRouting() {
                 call.respondText("已经存在")
                 return@post
             }
-            var type = ContentType.Video.MP4.toString()
-            //M3U8开始下载
-            if (urlParam.contains("m3u8")) {
-                type = "application/x-mpegURL"
-                val dir = path + File.separator + Util.md5(urlParam)
-                val job = viewModel.viewModelScope.launch(Dispatchers.IO) {
-                    File(dir).mkdirs()
-                    val headerFile = File(dir, "header.tmp")
-                    headerFile.writeText(Util.json(headerParam))
-                    startDownload(
-                        dir, urlParam, headerParam
-                    ) { taskId: String, progress: Int ->
-                        viewModel.updateProgress(id, progress)
-                    }
-                }
-                jobMap[id] = job
-            }
-
-            viewModel.addTask(
-                Task(
-                    id, download.list[0].filename, url, urlParam, type, 0, DownloadStatus.DOWNLOADING
-                )
-            )
+            val type = ContentType.Video.MP4.toString()
+            val taskProcess: TaskProcess by inject(TaskProcess::class.java)
+            taskProcess.addTask(urlParam, type, path, headerParam, id, download, url)
 
             call.respondText(url)
         }
 
 
     }
+}
+
+class TaskProcess(val viewModel: TaskViewModel) {
+
+    fun addTask(
+        urlParam: String, type: String, path: String,
+
+        headerParam: MutableMap<String, String>, id: String, download: Downloads, url: String
+    ) {
+        //M3U8开始下载
+        var type1 = type
+        if (urlParam.contains("m3u8")) {
+            type1 = "application/x-mpegURL"
+            val task = Task(
+                id, download.list[0].filename, url, urlParam, type1, 0, DownloadStatus.DOWNLOADING
+            )
+            val dir = path + File.separator + Util.md5(urlParam)
+            File(dir).mkdirs()
+            val headerFile = File(dir, "header.tmp")
+            headerFile.writeText(Util.json(headerParam))
+            viewModel.startDownload(task, path)/*  val dir = path + File.separator + Util.md5(urlParam)
+              val job = viewModel.viewModelScope.launch(Dispatchers.IO) {
+                  File(dir).mkdirs()
+                  val headerFile = File(dir, "header.tmp")
+                  headerFile.writeText(Util.json(headerParam))
+                  startDownload(
+                      dir, urlParam, headerParam
+                  ) { taskId: String, progress: Int ->
+                      viewModel.updateProgress(id, progress)
+                  }
+              }
+              jobMap[id] = job*/
+        }
+
+        viewModel.addTask(
+            Task(
+                id, download.list[0].filename, url, urlParam, type1, 0, DownloadStatus.DOWNLOADING
+            )
+        )
+    }
+
 }

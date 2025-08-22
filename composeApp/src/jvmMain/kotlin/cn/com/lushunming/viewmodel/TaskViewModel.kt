@@ -2,23 +2,27 @@ package cn.com.lushunming.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import cn.com.lushunming.service.ConfigService
 import cn.com.lushunming.service.TaskService
-import cn.com.lushunming.util.Constant.jobMap
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import model.Task
 import java.io.File
+import java.util.concurrent.ConcurrentHashMap
 
 
 class TaskViewModel() : ViewModel() {
     val service = TaskService()
     private val _tasks = MutableStateFlow<List<Task>>(emptyList())
     val tasks: StateFlow<List<Task>> = _tasks.asStateFlow()
+    val jobMap = ConcurrentHashMap<String, Job>()
+    val configService = ConfigService()
 
     init {
         getTaskList()
@@ -43,9 +47,18 @@ class TaskViewModel() : ViewModel() {
         }
     }
 
-    fun deleteTask(id: String) {
+    fun deleteTask(id: String,path: String) {
         viewModelScope.launch {
+            //取消协程
+
+            val job = jobMap[id]
+            job?.cancel()
             jobMap.remove(id)
+            //删除文件
+
+            val dir = path + File.separator + id
+            File(dir).deleteRecursively()
+
             service.deleteTask(id)
             getTaskList()
         }
@@ -95,7 +108,12 @@ class TaskViewModel() : ViewModel() {
     }
 
     fun pauseDownload(id: String) {
+
+
         viewModelScope.launch {
+            //取消协程
+            val job = jobMap[id]
+            job?.cancel()
             jobMap.remove(id)
             service.updateStatus(id, model.DownloadStatus.PAUSED)
             getTaskList()
