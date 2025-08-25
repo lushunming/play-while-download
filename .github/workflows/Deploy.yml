@@ -1,0 +1,31 @@
+# This file can be stored in your repository under .github/workflows/deploy.yml, for example.
+name: Deploy
+on: [workflow_dispatch]
+jobs:
+  build:
+    # Here we expect a build.yml similar to the one in 
+    # https://github.com/hydraulic-software/flutter-demo/blob/master/.github/workflows/build.yml
+    uses: ./.github/workflows/build.yml
+    
+  deploy:
+    needs: [build]
+    
+    # Important: must be run from Linux.
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        
+          
+          
+      - name: Run Conveyor    
+        
+        uses: hydraulic-software/conveyor/actions/build@v19.0
+        with:
+          working-directory: ./composeApp
+          command: make copied-site
+          signing_key: ${{ secrets.SIGN_KEY }}          
+          agree_to_license: 1
+          # If your SSH address is sensitive, you can hide it behind a secret as well.
+          # Otherwise, you can just add it directly to your 'conveyor.conf' file under key 'app.site.copy-to' 
+        
