@@ -16,35 +16,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
         
-      # The artifacts in this example are expected to be in the layout from the build.yml mentioned above.
-      - name: Download macOS ARM build
-        uses: actions/download-artifact@v3
-        with:
-          name: build-macos-aarch64
-          path: ./artifacts
           
-      - name: Download macOS AMD64 build
-        uses: actions/download-artifact@v3
-        with:
-          name: build-macos-amd64
-          path: ./artifacts
           
-      - name: Download Windows build
-        uses: actions/download-artifact@v3
-        with:
-          name: build-windows-amd64
-          # Windows is not in a tarball, so we extract to a separate directory.
-          path: ./artifacts/windows
-          
-      - name: Download Linux AMD64 build
-        uses: actions/download-artifact@v3
-        with:
-          name: build-linux-amd64
-          path: ./artifacts          
-          
-      - name: Run Conveyor     
+      - name: Run Conveyor    
+        
         uses: hydraulic-software/conveyor/actions/build@v19.0
         with:
+          working-directory: ./composeApp
           command: make copied-site
           signing_key: ${{ secrets.SIGN_KEY }}          
           agree_to_license: 1
