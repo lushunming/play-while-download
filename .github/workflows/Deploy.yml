@@ -1,6 +1,8 @@
 # This file can be stored in your repository under .github/workflows/deploy.yml, for example.
 name: Deploy
 on: [workflow_dispatch]
+env:
+    play_while_download_oauth: ${{ secrets.play_while_download_oauth }}
 jobs:
   build:
     # Here we expect a build.yml similar to the one in 
