@@ -6,6 +6,7 @@ on:
   pull_request:
     branches: [ "master" ]
   workflow_dispatch:
+  workflow_call:
 jobs:
   build:
 
@@ -25,7 +26,8 @@ jobs:
     # See: https://github.com/gradle/actions/blob/main/setup-gradle/README.md
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@af1da67850ed9a4cedd57bfd976089dd991e2582 # v4.0.0
-
+    - name: Grant execute permission to gradlew
+      run: chmod +x ./gradlew  # 为 gradlew 添加可执行权限
     - name: Build with Gradle Wrapper
       run: ./gradlew jvmJar writeConveyorConfig
 

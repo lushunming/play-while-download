@@ -1,6 +1,8 @@
 # This file can be stored in your repository under .github/workflows/deploy.yml, for example.
 name: Deploy
 on: [workflow_dispatch]
+env:
+    play_while_download_oauth: ${{ secrets.play_while_download_oauth }}
 jobs:
   build:
     # Here we expect a build.yml similar to the one in 
@@ -21,11 +23,11 @@ jobs:
       - name: Run Conveyor    
         
         uses: hydraulic-software/conveyor/actions/build@v19.0
+        
         with:
-          working-directory: ./composeApp
           command: make copied-site
           signing_key: ${{ secrets.SIGN_KEY }}          
           agree_to_license: 1
           # If your SSH address is sensitive, you can hide it behind a secret as well.
           # Otherwise, you can just add it directly to your 'conveyor.conf' file under key 'app.site.copy-to' 
-        
+          extra_flags: -f ${{ github.workspace }}/composeApp/conveyor.conf
