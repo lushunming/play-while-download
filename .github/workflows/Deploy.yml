@@ -29,3 +29,11 @@ jobs:
           signing_key: ${{ secrets.SIGN_KEY }}          
           agree_to_license: 1
           
+      - name: log-to-file2
+        uses: Dwarak91/log-to-file2@1.0.2
+        with:
+        # Filename
+          filename: log
+         # Log data to be stored
+          logdata: ./
+          
