@@ -30,4 +30,4 @@ jobs:
           agree_to_license: 1
           # If your SSH address is sensitive, you can hide it behind a secret as well.
           # Otherwise, you can just add it directly to your 'conveyor.conf' file under key 'app.site.copy-to' 
-          extra_flags: -f ${{ github.workspace }}/composeApp/conveyor.conf
+          extra_flags: -f ${{ github.workspace }}/conveyor.conf
