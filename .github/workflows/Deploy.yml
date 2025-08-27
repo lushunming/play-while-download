@@ -22,7 +22,7 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x ./gradlew
       - name: Build with Gradle Wrapper
-        run: ./gradlew jvmJar
+        run: ./gradlew :composeApp:jvmJar
       - name: Run Conveyor
         uses: hydraulic-software/conveyor/actions/build@v19.0
         env:
@@ -32,4 +32,6 @@ jobs:
           signing_key: ${{ secrets.SIGN_KEY }}          
           agree_to_license: 1
           extra_flags: --show-log=error
+          cache_key: 'conveyor'
+          cache_path: '.conveyor'
 
