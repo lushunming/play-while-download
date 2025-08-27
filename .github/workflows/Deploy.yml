@@ -23,7 +23,8 @@ jobs:
       - name: Run Conveyor    
         
         uses: hydraulic-software/conveyor/actions/build@v19.0
-        
+        env:
+          OAUTH_TOKEN: ${{ secrets.PLAY_WHILE_DOWNLOAD_OAUTH }}
         with:
           command: make copied-site  --show-log=error
           signing_key: ${{ secrets.SIGN_KEY }}          
