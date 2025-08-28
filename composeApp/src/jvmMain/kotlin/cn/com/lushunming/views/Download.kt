@@ -3,54 +3,37 @@ package cn.com.lushunming.views
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.VerticalScrollbar
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeContentPadding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollbarAdapter
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Start
-import androidx.compose.material3.Card
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Color.Companion.Blue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import cn.com.lushunming.server.ProxyServer
+import cn.com.lushunming.server.plugin.TaskProcess
 import cn.com.lushunming.service.ConfigService
+import cn.com.lushunming.service.TaskService
+import cn.com.lushunming.util.Constant.port
+import cn.com.lushunming.util.Util
 import cn.com.lushunming.viewmodel.ConfigViewModel
 import cn.com.lushunming.viewmodel.TaskViewModel
+import io.ktor.http.*
 import model.DownloadStatus
 import model.Task
 import org.koin.compose.koinInject
+import org.koin.java.KoinJavaComponent.inject
+import java.awt.Desktop
+import java.io.File
 
 @Composable
 fun Download() {
@@ -59,13 +42,14 @@ fun Download() {
     val taskViewModel = koinInject<TaskViewModel>()
     //  val taskViewModel = viewModel { TaskViewModel() }
     val downloadTasks by taskViewModel.tasks.collectAsState()
-
+    val taskService = TaskService();
     //配置
     val configService = ConfigService()
     val configViewModel = ConfigViewModel(configService)
     val config by configViewModel.config.collectAsState()
 
     var urlForVideoWindow by remember { mutableStateOf<String?>(null) }
+    var showDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         for (task in downloadTasks) {
@@ -77,9 +61,8 @@ fun Download() {
     }
 
     Column(
-        modifier = Modifier.background(MaterialTheme.colorScheme.primaryContainer)
-            .safeContentPadding().fillMaxSize().padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+        modifier = Modifier.background(MaterialTheme.colorScheme.primaryContainer).safeContentPadding().fillMaxSize()
+            .padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
             text = "下载管理",
@@ -120,12 +103,14 @@ fun Download() {
                         println("播放文件: ${task.name}")
 
 
+                    }, onOpenFolder = {
+                        val dir = config.downloadPath + File.separator + task.id
+                        Desktop.getDesktop().open(File(dir))
                     })
                 }
             }
             VerticalScrollbar(
-                modifier = Modifier.align(Alignment.Start).fillMaxHeight(),
-                adapter = rememberScrollbarAdapter(
+                modifier = Modifier.align(Alignment.Start).fillMaxHeight(), adapter = rememberScrollbarAdapter(
                     scrollState = state
                 )
             )
@@ -136,9 +121,33 @@ fun Download() {
             onClick = {
                 // 添加新下载任务
                 //viewModel.addTask();
+                showDialog = true
+
             }, modifier = Modifier.align(Alignment.End).padding(16.dp)
         ) {
             Icon(Icons.Default.Add, contentDescription = "添加下载任务")
+        }
+
+        if (showDialog) {
+            DownloadDialog(onConfirmation = {
+
+                val path = config.downloadPath
+
+                val urlParam = it
+                val headerParam = mutableMapOf<String, String>()
+                val url = ProxyServer().buildProxyUrl(urlParam, headerParam, port)
+                val id = Util.md5(urlParam)
+                val old = taskService.getTaskById(id)
+                if (old == null) {
+                    val type = ContentType.Video.MP4.toString()
+                    val taskProcess: TaskProcess by inject(TaskProcess::class.java)
+                    taskProcess.addTask(urlParam, type, path, headerParam, id, "new file", url)
+                    showDialog = false
+                }
+
+            }, onDismissRequest = { showDialog = false }
+
+            )
         }
     }
 
@@ -150,7 +159,12 @@ fun Download() {
 
 @Composable
 fun DownloadTaskItem(
-    task: Task, onStart: () -> Unit, onPause: () -> Unit, onDelete: () -> Unit, onPlay: () -> Unit
+    task: Task,
+    onStart: () -> Unit,
+    onPause: () -> Unit,
+    onDelete: () -> Unit,
+    onPlay: () -> Unit,
+    onOpenFolder: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth().padding(4.dp), border = BorderStroke(1.dp, color = Blue)
@@ -179,9 +193,7 @@ fun DownloadTaskItem(
 
             // 进度条
             LinearProgressIndicator(
-                progress = { task.progress / 100f },
-                modifier = Modifier.fillMaxWidth(),
-                color = when (task.status) {
+                progress = { task.progress / 100f }, modifier = Modifier.fillMaxWidth(), color = when (task.status) {
                     DownloadStatus.DOWNLOADING -> MaterialTheme.colorScheme.primary
                     DownloadStatus.COMPLETED -> MaterialTheme.colorScheme.tertiary
                     DownloadStatus.PAUSED -> MaterialTheme.colorScheme.secondary
@@ -204,6 +216,17 @@ fun DownloadTaskItem(
                 horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                // 打开目录
+                IconButton(
+                    onClick = onOpenFolder, enabled = true
+                ) {
+                    Icon(
+                        Icons.Default.FolderOpen, contentDescription = "打开目录",
+
+                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+
+                        )
+                }
                 // 播放按钮（仅当下载完成时可用）
                 IconButton(
                     onClick = onPlay, enabled = (task.progress >= 5 || task.type.contains("mp4"))
@@ -238,9 +261,7 @@ fun DownloadTaskItem(
                 // 删除按钮
                 IconButton(onClick = onDelete) {
                     Icon(
-                        Icons.Default.Delete,
-                        contentDescription = "删除",
-                        tint = MaterialTheme.colorScheme.error
+                        Icons.Default.Delete, contentDescription = "删除", tint = MaterialTheme.colorScheme.error
                     )
                 }
             }
@@ -269,3 +290,58 @@ fun StatusBadge(status: DownloadStatus) {
         )
     }
 }
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DownloadDialog(
+    onDismissRequest: () -> Unit, onConfirmation: (url: String) -> Unit
+) {
+
+    var downloadURL by remember { mutableStateOf("") }
+
+
+    BasicAlertDialog(onDismissRequest = { onDismissRequest() }) {
+
+
+        // Draw a rectangle shape with rounded corners inside the dialog
+        Card(
+            modifier = Modifier.fillMaxWidth().wrapContentHeight().padding(16.dp),
+            shape = RoundedCornerShape(16.dp),
+        ) {
+            Column(
+                modifier = Modifier.wrapContentHeight(),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                // 代理服务器地址
+                OutlinedTextField(
+                    value = downloadURL,
+                    onValueChange = { newValue -> downloadURL = newValue },
+                    label = { Text("下载链接") },
+                    modifier = Modifier.padding(2.dp)
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center,
+                ) {
+                    TextButton(
+                        onClick = { onDismissRequest() },
+                        modifier = Modifier.padding(8.dp),
+                    ) {
+                        Text("取消")
+                    }
+                    TextButton(
+                        onClick = { onConfirmation(downloadURL) },
+                        modifier = Modifier.padding(8.dp),
+                    ) {
+                        Text("开始下载")
+                    }
+                }
+            }
+        }
+    }
+
+
+}
+
+

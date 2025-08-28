@@ -9,17 +9,11 @@ import cn.com.lushunming.util.Constant
 import cn.com.lushunming.util.Util
 import cn.com.lushunming.viewmodel.TaskViewModel
 import com.google.gson.Gson
-import io.ktor.http.ContentType
-import io.ktor.http.HttpHeaders
-import io.ktor.server.application.Application
-import io.ktor.server.request.receive
-import io.ktor.server.response.header
-import io.ktor.server.response.respond
-import io.ktor.server.response.respondFile
-import io.ktor.server.response.respondText
-import io.ktor.server.routing.get
-import io.ktor.server.routing.post
-import io.ktor.server.routing.routing
+import io.ktor.http.*
+import io.ktor.server.application.*
+import io.ktor.server.request.*
+import io.ktor.server.response.*
+import io.ktor.server.routing.*
 import model.DownloadStatus
 import model.Task
 import org.koin.java.KoinJavaComponent.inject
@@ -105,7 +99,7 @@ fun Application.configureRouting() {
             }
             val type = ContentType.Video.MP4.toString()
             val taskProcess: TaskProcess by inject(TaskProcess::class.java)
-            taskProcess.addTask(urlParam, type, path, headerParam, id, download, url)
+            taskProcess.addTask(urlParam, type, path, headerParam, id, download.list[0].filename, url)
 
             call.respondText(url)
         }
@@ -119,14 +113,14 @@ class TaskProcess(val viewModel: TaskViewModel) {
     fun addTask(
         urlParam: String, type: String, path: String,
 
-        headerParam: MutableMap<String, String>, id: String, download: Downloads, url: String
+        headerParam: MutableMap<String, String>, id: String, fileName: String, url: String
     ) {
         //M3U8开始下载
         var type1 = type
         if (urlParam.contains("m3u8")) {
             type1 = "application/x-mpegURL"
             val task = Task(
-                id, download.list[0].filename, url, urlParam, type1, 0, DownloadStatus.DOWNLOADING
+                id, fileName, url, urlParam, type1, 0, DownloadStatus.DOWNLOADING
             )
             val dir = path + File.separator + Util.md5(urlParam)
             File(dir).mkdirs()
@@ -148,7 +142,7 @@ class TaskProcess(val viewModel: TaskViewModel) {
 
         viewModel.addTask(
             Task(
-                id, download.list[0].filename, url, urlParam, type1, 0, DownloadStatus.DOWNLOADING
+                id, fileName, url, urlParam, type1, 0, DownloadStatus.DOWNLOADING
             )
         )
     }

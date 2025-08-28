@@ -43,7 +43,7 @@ class TaskService {
         }
     }
 
-    suspend fun getTaskById(id: String): Task? {
+     fun getTaskById(id: String): Task? {
 
         return DatabaseFactory.dbQuery {
             Tasks.selectAll().where { Tasks.id eq id }.map { toTask(it) }.singleOrNull()

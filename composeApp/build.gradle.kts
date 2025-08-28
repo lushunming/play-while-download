@@ -4,7 +4,7 @@ val hikariCpVersion = "5.0.1"
 val flywayVersion = "8.5.4"
 val logback_version = "1.4.14"
 val koin_version = "4.0.3"
-version = "1.0.1"
+version = "1.0.2"
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.composeMultiplatform)
@@ -97,7 +97,7 @@ compose.desktop {
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "play-while-download"
-            packageVersion = "1.0.0"
+            packageVersion = "1.0.2"
             modules(
                 "java.compiler",
                 "java.instrument",
