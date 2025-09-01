@@ -9,6 +9,7 @@ m3u8:下载M3u8文件，构建本地M3u8文件，返回给播放器，使播放�
 # 用法
 下载压缩包安装，会启动内置服务`http://localhost:3800`
 配合`https://github.com/lushunming/m3u8-dl-sniffer` 浏览器插件，可以直接获取视频地址，一键发送到本服务中
+播放依赖VLC播放器（https://www.videolan.org/vlc/），请先下载安装
 
 
 
