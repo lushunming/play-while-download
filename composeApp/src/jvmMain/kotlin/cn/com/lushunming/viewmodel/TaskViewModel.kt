@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import model.DownloadStatus
 import model.Task
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
@@ -47,7 +48,7 @@ class TaskViewModel() : ViewModel() {
         }
     }
 
-    fun deleteTask(id: String,path: String) {
+    fun deleteTask(id: String, path: String) {
         viewModelScope.launch {
             //取消协程
 
@@ -71,11 +72,18 @@ class TaskViewModel() : ViewModel() {
         }
     }
 
+    fun updateStatus(id: String, status: DownloadStatus, message: String? = "") {
+        viewModelScope.launch {
+            service.updateStatus(id, status, message)
+            getTaskList()
+        }
+    }
+
     fun startDownload(task: Task, path: String) {
         viewModelScope.launch(Dispatchers.IO) {
             val id = task.id
 
-            service.updateStatus(id, model.DownloadStatus.DOWNLOADING)
+            updateStatus(id, model.DownloadStatus.DOWNLOADING)
 
             if (jobMap[id] != null) {
                 //TODO  call.respondText("已经在下载")
@@ -88,15 +96,41 @@ class TaskViewModel() : ViewModel() {
                     File(dir).mkdirs()
                     val headerFile = File(dir, "header.tmp")
                     val headerParam = Gson().fromJson<MutableMap<String, String>>(
-                        headerFile.readText(Charsets.UTF_8),
-                        object : TypeToken<MutableMap<String, String>>() {}.type
+                        headerFile.readText(Charsets.UTF_8), object : TypeToken<MutableMap<String, String>>() {}.type
                     )
                     cn.com.lushunming.server.startDownload(
                         dir, task.oriUrl, headerParam
-                    ) { taskId: String, progress: Int ->
-                        updateProgress(id, progress)
+                    ) { taskId: String, progress: Int, status: cn.com.lushunming.models.DownloadProgressStatus ->
+
                         if (progress == 100) {
-                            service.updateStatus(id, model.DownloadStatus.COMPLETED)
+                            updateStatus(id, model.DownloadStatus.COMPLETED)
+                        }
+                        when (status) {
+                            is cn.com.lushunming.models.DownloadProgressStatus.Done -> {
+                                updateStatus(
+                                    id, model.DownloadStatus.COMPLETED
+                                )
+                                updateProgress(id, progress)
+                            }
+
+                            is cn.com.lushunming.models.DownloadProgressStatus.Error -> {
+                                updateStatus(
+                                    id, model.DownloadStatus.ERROR, status.throwable.message
+                                )
+                                jobMap.remove(id)
+                            }
+
+                            cn.com.lushunming.models.DownloadProgressStatus.None -> updateStatus(
+                                id, model.DownloadStatus.PENDING
+                            )
+
+                            is cn.com.lushunming.models.DownloadProgressStatus.Progress -> {
+                                updateStatus(
+                                    id, model.DownloadStatus.DOWNLOADING
+                                )
+                                updateProgress(id, progress)
+                            }
+
                         }
                     }
 
@@ -115,7 +149,7 @@ class TaskViewModel() : ViewModel() {
             val job = jobMap[id]
             job?.cancel()
             jobMap.remove(id)
-            service.updateStatus(id, model.DownloadStatus.PAUSED)
+            updateStatus(id, model.DownloadStatus.PAUSED)
             getTaskList()
         }
     }

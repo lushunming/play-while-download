@@ -43,7 +43,7 @@ class TaskService {
         }
     }
 
-     fun getTaskById(id: String): Task? {
+    fun getTaskById(id: String): Task? {
 
         return DatabaseFactory.dbQuery {
             Tasks.selectAll().where { Tasks.id eq id }.map { toTask(it) }.singleOrNull()
@@ -65,12 +65,13 @@ class TaskService {
 
     }
 
-    fun updateStatus(id: String, downloading: DownloadStatus) {
+    fun updateStatus(id: String, downloading: DownloadStatus, message: String? = "") {
 
 
         DatabaseFactory.dbQuery {
             Tasks.update(where = { Tasks.id eq id }) {
                 it[Tasks.status] = downloading.ordinal
+                it[Tasks.message] = message
             }
         }
     }

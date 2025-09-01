@@ -1,22 +1,15 @@
 package cn.com.lushunming.server
 
 import androidx.lifecycle.viewModelScope
-import cn.com.lushunming.models.DownloadStatus
+import cn.com.lushunming.models.DownloadProgressStatus
 import cn.com.lushunming.util.HttpClientUtil
 import cn.com.lushunming.util.Util
 import cn.com.lushunming.viewmodel.TaskViewModel
-import io.ktor.client.statement.bodyAsBytes
-import io.ktor.client.statement.bodyAsText
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.delay
+import io.ktor.client.statement.*
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import okio.FileSystem
 import okio.Path.Companion.toOkioPath
 import org.koin.java.KoinJavaComponent.inject
@@ -26,7 +19,6 @@ import java.io.FileOutputStream
 import javax.crypto.Cipher
 import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
-import kotlin.getValue
 
 val logger = LoggerFactory.getLogger(M3U8Downloader::class.java)
 
@@ -98,9 +90,7 @@ class M3U8Downloader(private val outputDir: String) {
     }
 
     suspend fun downloadAllFiles(
-        m3u8Info: M3U8Info,
-        headers: Map<String, String>,
-        callback: (id: String, progress: Int) -> Unit
+        m3u8Info: M3U8Info, headers: Map<String, String>, callback: (id: String, progress: Int,status:DownloadProgressStatus) -> Unit
     ) {
         // 创建输出目录
         val dir = File(outputDir)
@@ -123,28 +113,31 @@ class M3U8Downloader(private val outputDir: String) {
          }*/
 
 
-        val taskViewModel:TaskViewModel by inject(TaskViewModel::class.java)//TaskViewModel()
-        download(m3u8Info.tsUrls, headers, dir,taskViewModel).collect { it ->
+        val taskViewModel: TaskViewModel by inject(TaskViewModel::class.java)//TaskViewModel()
+        download(m3u8Info.tsUrls, headers, dir, taskViewModel).collect { it ->
             when (it) {
-                is DownloadStatus.Progress -> {
+                is DownloadProgressStatus.Progress -> {
                     logger.info("已下载 ${it.value} %")
                     taskViewModel.viewModelScope.launch(Dispatchers.IO) {
-                        callback(Util.md5(m3u8Info.url), it.value)
+                        callback(Util.md5(m3u8Info.url), it.value,it)
                     }
                 }
 
-                is DownloadStatus.Done -> {
+                is DownloadProgressStatus.Done -> {
                     logger.info("下载完成")
                     taskViewModel.viewModelScope.launch(Dispatchers.IO) {
-                        callback(Util.md5(m3u8Info.url), 100)
+                        callback(Util.md5(m3u8Info.url), 100,it)
                     }
                 }
 
-                is DownloadStatus.Error -> {
+                is DownloadProgressStatus.Error -> {
+                    taskViewModel.viewModelScope.launch(Dispatchers.IO) {
+                        callback(Util.md5(m3u8Info.url), -1, it)
+                    }
                     logger.info("下载失败: ${it.throwable.message}")
                 }
 
-                is DownloadStatus.None -> {
+                is DownloadProgressStatus.None -> {
                     logger.info("下载还未开始")
                 }
 
@@ -158,11 +151,11 @@ class M3U8Downloader(private val outputDir: String) {
     private val maxRetries: Int = 3
 
     suspend fun download(
-        tsUrls: List<String>, headers: Map<String, String>, dir: File,taskViewModel:TaskViewModel
-    ): Flow<DownloadStatus> {
+        tsUrls: List<String>, headers: Map<String, String>, dir: File, taskViewModel: TaskViewModel
+    ): Flow<DownloadProgressStatus> {
         return flow {
 
-            emit(DownloadStatus.Progress(0))
+            emit(DownloadProgressStatus.Progress(0))
             val batches = tsUrls.chunked(batchSize)
             val total = tsUrls.size
 
@@ -177,17 +170,17 @@ class M3U8Downloader(private val outputDir: String) {
                 deferredList.awaitAll()
                 // onProgress(min((batchIndex) * batchSize + batch.size, total), total)
                 emit(
-                    DownloadStatus.Progress(
+                    DownloadProgressStatus.Progress(
                         (batchIndex * batchSize + batch.size) * 100 / total.floorDiv(
                             1
                         )
                     )
                 )
             }
-            emit(DownloadStatus.Done(dir))
+            emit(DownloadProgressStatus.Done(dir))
         }.catch {
             logger.info("下载失败: ${it.message}")
-            emit(DownloadStatus.Error(it))
+            emit(DownloadProgressStatus.Error(it))
         }
     }
 
@@ -253,19 +246,12 @@ private fun generateLocalM3U8(m3u8Info: M3U8Info, dir: File) {
 
 
 data class M3U8Info(
-    val infoLines: List<String>,
-    val tsUrls: List<String>,
-    val keyUrl: String?,
-    val iv: String?,
-    val url: String
+    val infoLines: List<String>, val tsUrls: List<String>, val keyUrl: String?, val iv: String?, val url: String
 )
 
 
 suspend fun startDownload(
-    outputDir: String,
-    m3u8Url: String,
-    headers: Map<String, String>,
-    callback: (id: String, progress: Int) -> Unit
+    outputDir: String, m3u8Url: String, headers: Map<String, String>, callback: (id: String, progress: Int,status:DownloadProgressStatus) -> Unit
 ) {
 
 
@@ -311,16 +297,15 @@ fun decryptAllTsFiles(
 
     val ivBytes = iv?.let { hexStringToByteArray(it) } ?: ByteArray(16)
 
-    inputDir.listFiles { _, name -> name.startsWith("segment") && name.endsWith(".ts") }
-        ?.forEach { tsFile ->
-            val decryptedFile = File(outputDir, "decrypted_${tsFile.name}")
-            if (key == null) {
-                FileSystem.SYSTEM.copy(tsFile.toOkioPath(), decryptedFile.toOkioPath())
-            } else {
-                TSDecryptor.decryptTSFile(tsFile, decryptedFile, key, ivBytes)
-            }
-
+    inputDir.listFiles { _, name -> name.startsWith("segment") && name.endsWith(".ts") }?.forEach { tsFile ->
+        val decryptedFile = File(outputDir, "decrypted_${tsFile.name}")
+        if (key == null) {
+            FileSystem.SYSTEM.copy(tsFile.toOkioPath(), decryptedFile.toOkioPath())
+        } else {
+            TSDecryptor.decryptTSFile(tsFile, decryptedFile, key, ivBytes)
         }
+
+    }
 }
 
 fun hexStringToByteArray(hex: String): ByteArray {
@@ -328,8 +313,7 @@ fun hexStringToByteArray(hex: String): ByteArray {
     val data = ByteArray(len / 2)
     var i = 0
     while (i < len) {
-        data[i / 2] =
-            ((Character.digit(hex[i], 16) shl 4) + Character.digit(hex[i + 1], 16)).toByte()
+        data[i / 2] = ((Character.digit(hex[i], 16) shl 4) + Character.digit(hex[i + 1], 16)).toByte()
         i += 2
     }
     return data
@@ -339,12 +323,11 @@ fun mergeTsFiles(inputDir: File, outputFile: File) {
     FileOutputStream(outputFile).use { output ->
         inputDir.listFiles { _, name ->
             name.startsWith("decrypted_") && name.endsWith(".ts")
-        }?.sortedBy { it.nameWithoutExtension.replace("decrypted_segment", "").toInt() }
-            ?.forEach { tsFile ->
-                tsFile.inputStream().use { input ->
-                    input.copyTo(output)
-                }
+        }?.sortedBy { it.nameWithoutExtension.replace("decrypted_segment", "").toInt() }?.forEach { tsFile ->
+            tsFile.inputStream().use { input ->
+                input.copyTo(output)
             }
+        }
     }
 }
 

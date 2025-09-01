@@ -22,4 +22,6 @@ object Config : Table("config") {
 
     val downloadPath = varchar("downloadPath", 1000)
 
+    override val primaryKey = PrimaryKey(id)
+
 }

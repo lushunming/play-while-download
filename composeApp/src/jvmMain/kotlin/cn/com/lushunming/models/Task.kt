@@ -1,5 +1,6 @@
 package model
 
+import cn.com.lushunming.models.Config
 import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.v1.core.Table
 
@@ -34,6 +35,8 @@ object Tasks : Table("tasks") {
     val type = varchar("type", 255)
     val progress = integer("progress")
     val status = integer("status")
+    val message = varchar("message", 1000).nullable()
+    override val primaryKey = PrimaryKey(Config.id)
 
 }
 
