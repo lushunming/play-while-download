@@ -21,11 +21,10 @@ class ProxyServer {
 
     val logger = LoggerFactory.getLogger(ProxyServer::class.java)
     val partSize = 1024 * 1024 // 1MB
-    val THREAD_NUM = 10
+    val THREAD_NUM =  Runtime.getRuntime().availableProcessors()
 
 
-
-    fun buildProxyUrl(url: String, headers: Map<String, String>,port:Int): String {
+    fun buildProxyUrl(url: String, headers: Map<String, String>, port: Int): String {
         return "http://127.0.0.1:$port/proxy?url=${
             Util.base64Encode(url.toByteArray(Charset.defaultCharset()))
         }&headers=${
@@ -54,16 +53,15 @@ class ProxyServer {
                 // 处理初始请求
                 rangeHeader = "bytes=0-"
             }
-            headers.toMutableMap().apply {
-                put(HttpHeaders.Range, rangeHeader)
-            }
+            val header = headers.toMutableMap()
+            header.put(HttpHeaders.Range, rangeHeader)
 
             // 解析范围请求
             val (startPoint, endPoint) = parseRangePoint(
                 rangeHeader
             )
             logger.info("startPoint: $startPoint; endPoint: $endPoint")
-            val contentLength = getContentLength(url, headers)
+            val contentLength = getContentLength(url, header)
             logger.info("contentLength: $contentLength")
             val finalEndPoint = if (endPoint == -1L) contentLength - 1 else endPoint
 
@@ -130,10 +128,12 @@ class ProxyServer {
     }
 
     private suspend fun getContentLength(url: String, headers: Map<String, String>): Long {
+        val header = headers.toMutableMap()
+        header.put(HttpHeaders.Range, "bytes=0-1")
         // 实现获取内容长度逻辑
-        val res = HttpClientUtil.get(url, headers)
+        val res = HttpClientUtil.get(url, header)
 
-        return res.headers[HttpHeaders.ContentLength]?.toLong() ?: 0L
+        return res.headers[HttpHeaders.ContentRange]?.split("/")?.get(1)?.toLong() ?: 0L
     }
 
     private suspend fun getVideoStream(

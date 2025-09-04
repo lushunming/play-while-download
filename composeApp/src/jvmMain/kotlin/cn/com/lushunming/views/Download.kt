@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.Color.Companion.Blue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import cn.com.lushunming.server.ProxyServer
+import cn.com.lushunming.server.logger
 import cn.com.lushunming.server.plugin.TaskProcess
 import cn.com.lushunming.service.ConfigService
 import cn.com.lushunming.service.TaskService
@@ -152,6 +153,7 @@ fun Download() {
     }
 
     urlForVideoWindow?.let { url ->
+        logger.info("视频URl：$url")
         Video(url) { urlForVideoWindow = null }
     }
 }
