@@ -4,6 +4,7 @@ import cn.com.lushunming.models.Downloads
 import cn.com.lushunming.server.M3u8ProxyServer
 import cn.com.lushunming.server.ProxyServer
 import cn.com.lushunming.service.ConfigService
+import cn.com.lushunming.service.DownloadService
 import cn.com.lushunming.service.TaskService
 import cn.com.lushunming.util.Constant
 import cn.com.lushunming.util.Util
@@ -86,7 +87,7 @@ fun Application.configureRouting() {
          * 提交下载
          */
         post("/download") {
-            val path = configService.getConfig()?.downloadPath ?: Constant.downloadPath
+            val downloadPath = configService.getConfig()?.downloadPath ?: Constant.downloadPath
             val download = call.receive<Downloads>()
             val urlParam = download.list[0].url
             val headerParam = download.list[0].headers
@@ -97,9 +98,9 @@ fun Application.configureRouting() {
                 call.respondText("已经存在")
                 return@post
             }
-            val type = ContentType.Video.MP4.toString()
-            val taskProcess: TaskProcess by inject(TaskProcess::class.java)
-            taskProcess.addTask(urlParam, type, path, headerParam, id, download.list[0].filename, url)
+
+            val taskProcess: DownloadService by inject(DownloadService::class.java)
+            taskProcess.addTask(urlParam, downloadPath, headerParam, id, download.list[0].filename, url)
 
             call.respondText(url)
         }
@@ -108,43 +109,3 @@ fun Application.configureRouting() {
     }
 }
 
-class TaskProcess(val viewModel: TaskViewModel) {
-
-    fun addTask(
-        urlParam: String, type: String, path: String,
-
-        headerParam: MutableMap<String, String>, id: String, fileName: String, url: String
-    ) {
-        //M3U8开始下载
-        var type1 = type
-        if (urlParam.contains("m3u8")) {
-            type1 = "application/x-mpegURL"
-            val task = Task(
-                id, fileName, url, urlParam, type1, 0, DownloadStatus.DOWNLOADING
-            )
-            val dir = path + File.separator + Util.md5(urlParam)
-            File(dir).mkdirs()
-            val headerFile = File(dir, "header.tmp")
-            headerFile.writeText(Util.json(headerParam))
-            viewModel.startDownload(task, path)/*  val dir = path + File.separator + Util.md5(urlParam)
-              val job = viewModel.viewModelScope.launch(Dispatchers.IO) {
-                  File(dir).mkdirs()
-                  val headerFile = File(dir, "header.tmp")
-                  headerFile.writeText(Util.json(headerParam))
-                  startDownload(
-                      dir, urlParam, headerParam
-                  ) { taskId: String, progress: Int ->
-                      viewModel.updateProgress(id, progress)
-                  }
-              }
-              jobMap[id] = job*/
-        }
-
-        viewModel.addTask(
-            Task(
-                id, fileName, url, urlParam, type1, 0, DownloadStatus.DOWNLOADING
-            )
-        )
-    }
-
-}

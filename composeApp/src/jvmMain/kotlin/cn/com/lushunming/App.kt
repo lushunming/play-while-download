@@ -21,7 +21,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import cn.com.lushunming.server.plugin.TaskProcess
+import cn.com.lushunming.service.DownloadService
 import cn.com.lushunming.viewmodel.TaskViewModel
 import cn.com.lushunming.views.Download
 import cn.com.lushunming.views.Setting
@@ -43,7 +43,7 @@ fun App() {
     KoinApplication(application = {
         modules(module {
             single { TaskViewModel() }
-            single { TaskProcess(get()) }
+            single { DownloadService(get()) }
         })
     }) {
         AppTheme {

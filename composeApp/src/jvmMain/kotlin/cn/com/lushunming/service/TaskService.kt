@@ -75,4 +75,14 @@ class TaskService {
             }
         }
     }
+
+    fun updateFileNameAndType(id: String, fileName: String,fileType: String) {
+        DatabaseFactory.dbQuery {
+            Tasks.update(where = { Tasks.id eq id }) {
+                it[Tasks.name] = fileName
+                it[Tasks.type] = fileType
+            }
+        }
+
+    }
 }

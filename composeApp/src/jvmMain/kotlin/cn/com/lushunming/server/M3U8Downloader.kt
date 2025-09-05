@@ -2,6 +2,8 @@ package cn.com.lushunming.server
 
 import androidx.lifecycle.viewModelScope
 import cn.com.lushunming.models.DownloadProgressStatus
+import cn.com.lushunming.util.Constant.batchSize
+import cn.com.lushunming.util.Constant.maxRetries
 import cn.com.lushunming.util.HttpClientUtil
 import cn.com.lushunming.util.Util
 import cn.com.lushunming.viewmodel.TaskViewModel
@@ -20,11 +22,10 @@ import javax.crypto.Cipher
 import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
 
-val logger = LoggerFactory.getLogger(M3U8Downloader::class.java)
-
 
 class M3U8Downloader(private val outputDir: String) {
 
+    val logger = LoggerFactory.getLogger(M3U8Downloader::class.java)
 
     // 解析M3U8文件
     suspend fun parseM3U8(m3u8Url: String, headers: Map<String, String>): M3U8Info {
@@ -90,7 +91,9 @@ class M3U8Downloader(private val outputDir: String) {
     }
 
     suspend fun downloadAllFiles(
-        m3u8Info: M3U8Info, headers: Map<String, String>, callback: (id: String, progress: Int,status:DownloadProgressStatus) -> Unit
+        m3u8Info: M3U8Info,
+        headers: Map<String, String>,
+        callback: (id: String, progress: Int, status: DownloadProgressStatus) -> Unit
     ) {
         // 创建输出目录
         val dir = File(outputDir)
@@ -119,14 +122,14 @@ class M3U8Downloader(private val outputDir: String) {
                 is DownloadProgressStatus.Progress -> {
                     logger.info("已下载 ${it.value} %")
                     taskViewModel.viewModelScope.launch(Dispatchers.IO) {
-                        callback(Util.md5(m3u8Info.url), it.value,it)
+                        callback(Util.md5(m3u8Info.url), it.value, it)
                     }
                 }
 
                 is DownloadProgressStatus.Done -> {
                     logger.info("下载完成")
                     taskViewModel.viewModelScope.launch(Dispatchers.IO) {
-                        callback(Util.md5(m3u8Info.url), 100,it)
+                        callback(Util.md5(m3u8Info.url), 100, it)
                     }
                 }
 
@@ -147,8 +150,7 @@ class M3U8Downloader(private val outputDir: String) {
 
     }
 
-    private val batchSize: Int = Runtime.getRuntime().availableProcessors()
-    private val maxRetries: Int = 3
+
 
     suspend fun download(
         tsUrls: List<String>, headers: Map<String, String>, dir: File, taskViewModel: TaskViewModel
@@ -215,121 +217,82 @@ class M3U8Downloader(private val outputDir: String) {
             }
         }
     }
-}
 
-private fun generateLocalM3U8(m3u8Info: M3U8Info, dir: File) {
-    val m3u8Content = buildString {
-        appendLine("#EXTM3U")
-        appendLine("#EXT-X-VERSION:3")
-        appendLine("#EXT-X-TARGETDURATION:10")
-        appendLine("#EXT-X-MEDIA-SEQUENCE:0")
+    fun decryptAllTsFiles(
+        inputDir: File, outputDir: File, key: ByteArray?, iv: String? = null
+    ) {
+        if (!outputDir.exists()) outputDir.mkdirs()
 
-        m3u8Info.keyUrl?.let {
-            val keyLine = if (m3u8Info.iv != null) {
-                "#EXT-X-KEY:METHOD=AES-128,URI=\"/ts/${Util.md5(m3u8Info.url)}/key.key\",IV=${m3u8Info.iv}"
+        val ivBytes = iv?.let { hexStringToByteArray(it) } ?: ByteArray(16)
+
+        inputDir.listFiles { _, name -> name.startsWith("segment") && name.endsWith(".ts") }?.forEach { tsFile ->
+            val decryptedFile = File(outputDir, "decrypted_${tsFile.name}")
+            if (key == null) {
+                FileSystem.SYSTEM.copy(tsFile.toOkioPath(), decryptedFile.toOkioPath())
             } else {
-                "#EXT-X-KEY:METHOD=AES-128,URI=\"/ts/${Util.md5(m3u8Info.url)}/key.key\""
+                TSDecryptor.decryptTSFile(tsFile, decryptedFile, key, ivBytes)
             }
-            appendLine(keyLine)
-        }
 
-        m3u8Info.tsUrls.forEachIndexed { index, _ ->
-            appendLine(m3u8Info.infoLines[index])
-            appendLine("/ts/${Util.md5(m3u8Info.url)}/segment${index + 1}.ts")
         }
-
-        appendLine("#EXT-X-ENDLIST")
     }
 
-    File(dir, "local.m3u8").writeText(m3u8Content)
+    fun hexStringToByteArray(hex: String): ByteArray {
+        val len = hex.length
+        val data = ByteArray(len / 2)
+        var i = 0
+        while (i < len) {
+            data[i / 2] = ((Character.digit(hex[i], 16) shl 4) + Character.digit(hex[i + 1], 16)).toByte()
+            i += 2
+        }
+        return data
+    }
+
+    private fun generateLocalM3U8(m3u8Info: M3U8Info, dir: File) {
+        val m3u8Content = buildString {
+            appendLine("#EXTM3U")
+            appendLine("#EXT-X-VERSION:3")
+            appendLine("#EXT-X-TARGETDURATION:10")
+            appendLine("#EXT-X-MEDIA-SEQUENCE:0")
+
+            m3u8Info.keyUrl?.let {
+                val keyLine = if (m3u8Info.iv != null) {
+                    "#EXT-X-KEY:METHOD=AES-128,URI=\"/ts/${Util.md5(m3u8Info.url)}/key.key\",IV=${m3u8Info.iv}"
+                } else {
+                    "#EXT-X-KEY:METHOD=AES-128,URI=\"/ts/${Util.md5(m3u8Info.url)}/key.key\""
+                }
+                appendLine(keyLine)
+            }
+
+            m3u8Info.tsUrls.forEachIndexed { index, _ ->
+                appendLine(m3u8Info.infoLines[index])
+                appendLine("/ts/${Util.md5(m3u8Info.url)}/segment${index + 1}.ts")
+            }
+
+            appendLine("#EXT-X-ENDLIST")
+        }
+
+        File(dir, "local.m3u8").writeText(m3u8Content)
+    }
+    fun mergeTsFiles(inputDir: File, outputFile: File) {
+        FileOutputStream(outputFile).use { output ->
+            inputDir.listFiles { _, name ->
+                name.startsWith("decrypted_") && name.endsWith(".ts")
+            }?.sortedBy { it.nameWithoutExtension.replace("decrypted_segment", "").toInt() }?.forEach { tsFile ->
+                tsFile.inputStream().use { input ->
+                    input.copyTo(output)
+                }
+            }
+        }
+    }
+
 }
+
 
 
 data class M3U8Info(
     val infoLines: List<String>, val tsUrls: List<String>, val keyUrl: String?, val iv: String?, val url: String
 )
 
-
-suspend fun startDownload(
-    outputDir: String, m3u8Url: String, headers: Map<String, String>, callback: (id: String, progress: Int,status:DownloadProgressStatus) -> Unit
-) {
-
-
-    val downloader = M3U8Downloader(outputDir)
-    File(outputDir, "header.tmp").writeText(Util.json(headers))
-
-    try {
-        // 解析M3U8
-        val m3u8Info = downloader.parseM3U8(m3u8Url, headers)
-        logger.info("解析完成，找到${m3u8Info.tsUrls.size}个TS片段")
-
-        // 下载所有文件
-        downloader.downloadAllFiles(m3u8Info, headers, callback)
-        logger.info("文件下载完成")
-
-
-        // 4. 解密TS文件
-        var key: ByteArray? = null;
-        if (m3u8Info.keyUrl != null) {
-            key = File(outputDir, "key.key").readBytes()
-        }
-        decryptAllTsFiles(
-            File(outputDir), File(outputDir), key, m3u8Info.iv?.replace("0x", "")
-        )
-
-
-        // 5. 合并TS文件
-        val mergedFile = File(outputDir, "output.ts")
-        mergeTsFiles(File(outputDir), mergedFile)
-
-
-        logger.info("所有操作完成！本地M3U8文件位于：${File(outputDir).absolutePath}/local.m3u8")
-    } catch (e: Exception) {
-        logger.info("发生错误: ${e.message}")
-        e.printStackTrace()
-    }
-}
-
-fun decryptAllTsFiles(
-    inputDir: File, outputDir: File, key: ByteArray?, iv: String? = null
-) {
-    if (!outputDir.exists()) outputDir.mkdirs()
-
-    val ivBytes = iv?.let { hexStringToByteArray(it) } ?: ByteArray(16)
-
-    inputDir.listFiles { _, name -> name.startsWith("segment") && name.endsWith(".ts") }?.forEach { tsFile ->
-        val decryptedFile = File(outputDir, "decrypted_${tsFile.name}")
-        if (key == null) {
-            FileSystem.SYSTEM.copy(tsFile.toOkioPath(), decryptedFile.toOkioPath())
-        } else {
-            TSDecryptor.decryptTSFile(tsFile, decryptedFile, key, ivBytes)
-        }
-
-    }
-}
-
-fun hexStringToByteArray(hex: String): ByteArray {
-    val len = hex.length
-    val data = ByteArray(len / 2)
-    var i = 0
-    while (i < len) {
-        data[i / 2] = ((Character.digit(hex[i], 16) shl 4) + Character.digit(hex[i + 1], 16)).toByte()
-        i += 2
-    }
-    return data
-}
-
-fun mergeTsFiles(inputDir: File, outputFile: File) {
-    FileOutputStream(outputFile).use { output ->
-        inputDir.listFiles { _, name ->
-            name.startsWith("decrypted_") && name.endsWith(".ts")
-        }?.sortedBy { it.nameWithoutExtension.replace("decrypted_segment", "").toInt() }?.forEach { tsFile ->
-            tsFile.inputStream().use { input ->
-                input.copyTo(output)
-            }
-        }
-    }
-}
 
 object TSDecryptor {
     private const val AES_ALGORITHM = "AES"
@@ -352,38 +315,3 @@ object TSDecryptor {
 }
 
 
-fun main(): kotlin.Unit = runBlocking {
-    /* val outputDir = "downloads"
-     val m3u8Url = "https://play.xluuss.com/play/NbW27gJa/index.m3u8"
-     val headers = mapOf("a" to "b")
-
-     val downloader = M3U8Downloader(outputDir)
-
-     try {
-         // 解析M3U8
-         val m3u8Info = downloader.parseM3U8(m3u8Url, headers)
-         logger.info("解析完成，找到${m3u8Info.tsUrls.size}个TS片段")
-
-         // 下载所有文件
-         downloader.downloadAllFiles(m3u8Info, headers, { id, progress ->
-             logger.info("下载进度: $id $progress %")
-         })
-         logger.info("文件下载完成")
-
-
-
-
-         logger.info("所有操作完成！本地M3U8文件位于：${File(outputDir).absolutePath}/local.m3u8")
-     } catch (e: Exception) {
-         logger.info("发生错误: ${e.message}")
-         e.printStackTrace()
-     }*/
-    val dir = "C:\\Users\\Administrator\\Desktop\\3b4493c3342dd194559ad6c8114abe95";/* decryptAllTsFiles(
-         File(dir),
-         File(dir),
-         key=  File(dir, "key.key").readBytes(),
-         "0x00000000000000000000000000000000".replace("0x","")
-     )*/
-    val mergedFile = File(dir, "output.ts")
-    mergeTsFiles(File(dir), mergedFile)
-}

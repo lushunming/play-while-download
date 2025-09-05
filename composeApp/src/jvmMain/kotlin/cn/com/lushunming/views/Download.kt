@@ -1,5 +1,6 @@
 package cn.com.lushunming.views
 
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.VerticalScrollbar
 import androidx.compose.foundation.background
@@ -20,15 +21,14 @@ import androidx.compose.ui.graphics.Color.Companion.Blue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import cn.com.lushunming.server.ProxyServer
-import cn.com.lushunming.server.logger
-import cn.com.lushunming.server.plugin.TaskProcess
 import cn.com.lushunming.service.ConfigService
+import cn.com.lushunming.service.DownloadService
 import cn.com.lushunming.service.TaskService
 import cn.com.lushunming.util.Constant.port
+import cn.com.lushunming.util.DownloadUtil.logger
 import cn.com.lushunming.util.Util
 import cn.com.lushunming.viewmodel.ConfigViewModel
 import cn.com.lushunming.viewmodel.TaskViewModel
-import io.ktor.http.*
 import model.DownloadStatus
 import model.Task
 import org.koin.compose.koinInject
@@ -55,7 +55,7 @@ fun Download() {
     LaunchedEffect(Unit) {
         for (task in downloadTasks) {
             if (task.status != DownloadStatus.COMPLETED) {
-                taskViewModel.startDownload(task, config.downloadPath)
+                taskViewModel.startDownload(task, config.downloadPath + File.separator + task.id)
             }
 
         }
@@ -140,9 +140,9 @@ fun Download() {
                 val id = Util.md5(urlParam)
                 val old = taskService.getTaskById(id)
                 if (old == null) {
-                    val type = ContentType.Video.MP4.toString()
-                    val taskProcess: TaskProcess by inject(TaskProcess::class.java)
-                    taskProcess.addTask(urlParam, type, path, headerParam, id, "new file", url)
+
+                    val taskProcess: DownloadService by inject(DownloadService::class.java)
+                    taskProcess.addTask(urlParam, path, headerParam, id, "", url)
                     showDialog = false
                 }
 
@@ -230,15 +230,33 @@ fun DownloadTaskItem(
                         )
                 }
                 // 播放按钮（仅当下载完成时可用）
-                IconButton(
-                    onClick = onPlay, enabled = (task.progress >= 5 || task.type.contains("mp4"))
-                ) {
-                    Icon(
-                        Icons.Default.PlayArrow,
-                        contentDescription = "播放",
-                        tint = if (task.progress >= 5 || task.type.contains("mp4")) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
-                    )
+                when (task.type) {
+                    "Video" -> {
+                        IconButton(
+                            onClick = onPlay, enabled = (task.progress >= 5)
+                        ) {
+                            Icon(
+                                Icons.Default.PlayArrow,
+                                contentDescription = "播放",
+                                tint = if (task.progress >= 5) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+                            )
+                        }
+                    }
+
+                    "M3u8" -> {
+                        IconButton(
+                            onClick = onPlay, enabled = (task.progress >= 5)
+                        ) {
+                            Icon(
+                                Icons.Default.PlayArrow,
+                                contentDescription = "播放",
+                                tint = if (task.progress >= 5) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+                            )
+                        }
+                    }
+
                 }
 
                 // 启动/暂停按钮
