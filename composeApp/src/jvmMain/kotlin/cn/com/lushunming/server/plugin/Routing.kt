@@ -105,12 +105,14 @@ fun Application.configureRouting() {
             val header: Map<String, String> = Gson().fromJson<Map<String, String>>(
                 Util.base64Decode(call.parameters["headers"]!!), MutableMap::class.java
             )
+            val dir = path + File.separator + Util.md5(url)
+
             if (url.contains("m3u8")) {
-                val dir = path + File.separator + Util.md5(url)
+
                 M3u8ProxyServer().proxyAsyncM3u8(url, header, dir, call)
             } else {
                 ProxyServer().proxyAsync(
-                    url, header, call
+                    url, header, dir,call
                 )
             }
 

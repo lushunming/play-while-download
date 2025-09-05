@@ -8,20 +8,16 @@ import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.response.*
 import io.ktor.utils.io.*
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.launch
 import org.slf4j.LoggerFactory
-import java.nio.ByteBuffer
+import java.io.File
+import java.io.FileInputStream
 import java.nio.charset.Charset
 
 class ProxyServer {
 
     val logger = LoggerFactory.getLogger(ProxyServer::class.java)
     val partSize = 1024 * 1024 // 1MB
-    val THREAD_NUM =  Runtime.getRuntime().availableProcessors()
+    val THREAD_NUM = Runtime.getRuntime().availableProcessors()
 
 
     fun buildProxyUrl(url: String, headers: Map<String, String>, port: Int): String {
@@ -38,9 +34,9 @@ class ProxyServer {
 
 
     suspend fun proxyAsync(
-        url: String, headers: Map<String, String>, call: ApplicationCall
+        url: String, headers: Map<String, String>, dir: String, call: ApplicationCall
     ) {
-        val channels = List(THREAD_NUM) { Channel<ByteArray>() }
+
         try {
             logger.info("--proxyMultiThread: THREAD_NUM: $THREAD_NUM")
             logger.info("--proxyMultiThread: url: $url")
@@ -79,31 +75,28 @@ class ProxyServer {
 
                 // 启动生产者协程下载数据
 
-                val producerJob = mutableListOf<Job>()
-
                 while (currentStart <= finalEndPoint) {
-                    producerJob.clear()
-                    // 创建通道用于接收数据块
+                    //第几块
+                    val index = currentStart / partSize
+                    //偏移量
+                    val offset = currentStart % partSize
+                    val fileStart = index * partSize
+                    val fileEnd = minOf(index * partSize + partSize - 1, finalEndPoint)
 
-                    for (i in 0 until THREAD_NUM) {
-
-                        if (currentStart > finalEndPoint) break
-                        val chunkStart = currentStart
-                        val chunkEnd = minOf(currentStart + partSize - 1, finalEndPoint)
-                        producerJob += CoroutineScope(Dispatchers.IO).launch {
-                            // 异步下载数据块
-                            val data = getVideoStream(chunkStart, chunkEnd, url, headers)
-                            channels[i].send(data)
-
+                    val fileName = "${fileStart}-${fileEnd}.video"
+                    val file = File(dir, fileName)
+                    if (file.exists()) {
+                        val fileInputStream = FileInputStream(file)
+                        fileInputStream.skip(offset)
+                        val buffer = ByteArray(1024)
+                        var bytesRead: Int
+                        while (fileInputStream.read(buffer).also { bytesRead = it } != -1) {
+                            writeFully(buffer, 0, bytesRead) // 写入到输出流中，直到达到所需的长度或文件结束
                         }
-                        currentStart = chunkEnd + 1
+                    } else {
+                        writeFully(getVideoStream(currentStart, finalEndPoint, url, headers))
                     }
-                    for ((index, job) in producerJob.withIndex()) {
-
-                        val data = channels[index].receive()
-                        logger.info("Received chunk: ${data.size} bytes")
-                        writeFully(ByteBuffer.wrap(data))
-                    }
+                    currentStart = fileEnd + 1
                 }
 
 
@@ -112,7 +105,7 @@ class ProxyServer {
             logger.info("error: ${e.message}")
             call.respondText("error: ${e.message}", ContentType.Text.Plain)
         } finally {
-            channels.forEach { it.close() }
+
         }
     }
 
