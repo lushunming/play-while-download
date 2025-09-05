@@ -171,9 +171,11 @@ class TaskViewModel() : ViewModel() {
      * 请求文件获取文件类型，文件大小，是否可以分片，以及文件名
      */
     suspend fun getDownloadInfo(urlParam: String, headerParam: MutableMap<String, String>): DownloadInfo {
+        val headers=mutableMapOf<String, String>()
+        headerParam.forEach { (key, value) ->{headers[key]=value} }
 
-        headerParam.put(HttpHeaders.Range, "bytes=0-1024")
-        val res = HttpClientUtil.get(urlParam, headerParam)
+        headers.put(HttpHeaders.Range, "bytes=0-1024")
+        val res = HttpClientUtil.get(urlParam, headers)
 
         val contentType = res.headers[HttpHeaders.ContentType]
         val acceptRanges = res.status.value == 206

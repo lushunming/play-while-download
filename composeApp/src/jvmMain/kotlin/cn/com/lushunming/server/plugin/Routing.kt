@@ -8,15 +8,12 @@ import cn.com.lushunming.service.DownloadService
 import cn.com.lushunming.service.TaskService
 import cn.com.lushunming.util.Constant
 import cn.com.lushunming.util.Util
-import cn.com.lushunming.viewmodel.TaskViewModel
 import com.google.gson.Gson
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import model.DownloadStatus
-import model.Task
 import org.koin.java.KoinJavaComponent.inject
 import org.slf4j.LoggerFactory
 import java.io.File
@@ -41,6 +38,62 @@ fun Application.configureRouting() {
     routing {
         get("/") {
             call.respondText("ktor is running .....")
+        }
+
+        get("/video") {
+            val url = Util.base64Decode(call.request.queryParameters["url"]!!)
+            val type = call.parameters["type"]
+            var player = ""
+            player = if (type == "M3u8") {
+                "HlsJsPlayer"
+            } else {
+                "Player"
+            }
+            val html = """
+    <!DOCTYPE html>
+                <html>
+                <head>
+                        <meta charset="utf-8">
+                        <meta name=viewport content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no,minimal-ui">
+                        <meta name="referrer" content="no-referrer">
+                        <title>视频播放</title>
+                        <style type="text/css">
+                        html, body {width:100%;height:100%;margin:auto;overflow: hidden;}
+                        </style>
+                        </head>
+                <body>
+                        <div id="mse"></div>
+                        <script src="https://unpkg.byted-static.com/xgplayer/2.31.6/browser/index.js" charset="utf-8"></script>
+                        <script src="https://unpkg.byted-static.com/xgplayer-hls.js/2.2.2/browser/index.js" charset="utf-8"></script><script>
+                        let player = new ${player}({
+                    "id": "mse",
+                    "url": "${url}",
+              
+              
+                thumbnail: {
+      pic_num: 44,
+      width: 160,
+      height: 90,
+      col: 10,
+      row: 10,
+      urls: ['./xgplayer-demo-thumbnail-1.jpg','./xgplayer-demo-thumbnail-2.jpg'],
+      isShowCoverPreview: false
+  },
+
+                });
+                player.on('complete',()=>{
+              
+                 player.getCssFullscreen(player.root)
+                  
+                })
+
+            </script>
+            </body>
+            </html>
+""".trimIndent()
+            call.respondText(
+                contentType = ContentType.parse("text/html"), text = html
+            )
         }
 
 

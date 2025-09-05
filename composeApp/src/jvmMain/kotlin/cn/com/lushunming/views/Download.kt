@@ -12,6 +12,7 @@ import androidx.compose.foundation.rememberScrollbarAdapter
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -31,10 +32,12 @@ import cn.com.lushunming.viewmodel.ConfigViewModel
 import cn.com.lushunming.viewmodel.TaskViewModel
 import model.DownloadStatus
 import model.Task
+import okio.Utf8
 import org.koin.compose.koinInject
 import org.koin.java.KoinJavaComponent.inject
 import java.awt.Desktop
 import java.io.File
+import java.net.URI
 
 @Composable
 fun Download() {
@@ -242,6 +245,17 @@ fun DownloadTaskItem(
                                 else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
                             )
                         }
+                        IconButton(
+                            onClick = { Desktop.getDesktop().browse(URI.create("http://localhost:3800/video?url=${Util.base64Encode(task.url.toByteArray(
+                            ))}&type=${task.type}"))}, enabled = (task.progress >= 5)
+                        ) {
+                            Icon(
+                                Icons.Outlined.PlayArrow,
+                                contentDescription = "播放",
+                                tint = if (task.progress >= 5) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+                            )
+                        }
                     }
 
                     "M3u8" -> {
@@ -250,6 +264,17 @@ fun DownloadTaskItem(
                         ) {
                             Icon(
                                 Icons.Default.PlayArrow,
+                                contentDescription = "播放",
+                                tint = if (task.progress >= 5) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+                            )
+                        }
+                        IconButton(
+                            onClick = { Desktop.getDesktop().browse(URI.create("http://localhost:3800/video?url=${Util.base64Encode(task.url.toByteArray(
+                            ))}&type=${task.type}"))}, enabled = (task.progress >= 5)
+                        ) {
+                            Icon(
+                                Icons.Outlined.PlayArrow,
                                 contentDescription = "播放",
                                 tint = if (task.progress >= 5) MaterialTheme.colorScheme.primary
                                 else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
