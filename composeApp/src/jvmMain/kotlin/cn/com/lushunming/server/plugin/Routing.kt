@@ -45,51 +45,56 @@ fun Application.configureRouting() {
             val type = call.parameters["type"]
             var player = ""
             player = if (type == "M3u8") {
-                "HlsJsPlayer"
+                "hls"
             } else {
-                "Player"
+                "auto"
             }
             val html = """
-    <!DOCTYPE html>
-                <html>
-                <head>
-                        <meta charset="utf-8">
-                        <meta name=viewport content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no,minimal-ui">
-                        <meta name="referrer" content="no-referrer">
-                        <title>视频播放</title>
-                        <style type="text/css">
-                        html, body {width:100%;height:100%;margin:auto;overflow: hidden;}
-                        </style>
-                        </head>
-                <body>
-                        <div id="mse"></div>
-                        <script src="https://unpkg.byted-static.com/xgplayer/2.31.6/browser/index.js" charset="utf-8"></script>
-                        <script src="https://unpkg.byted-static.com/xgplayer-hls.js/2.2.2/browser/index.js" charset="utf-8"></script><script>
-                        let player = new ${player}({
-                    "id": "mse",
-                    "url": "${url}",
-              
-              
-                thumbnail: {
-      pic_num: 44,
-      width: 160,
-      height: 90,
-      col: 10,
-      row: 10,
-      urls: ['./xgplayer-demo-thumbnail-1.jpg','./xgplayer-demo-thumbnail-2.jpg'],
-      isShowCoverPreview: false
-  },
-
-                });
-                player.on('complete',()=>{
-              
-                 player.getCssFullscreen(player.root)
-                  
-                })
-
-            </script>
-            </body>
-            </html>
+    
+		  <!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DPlayer HLS(m3u8)播放Demo</title>
+    <!-- 引入 DPlayer 样式 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/dplayer/dist/DPlayer.min.css">
+</head>
+<body>
+    <!-- 播放器容器 -->
+    <div id="dplayer"></div>
+    
+    <!-- 引入 hls.js 库（必须在 DPlayer 之前引入） -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <!-- 引入 DPlayer -->
+    <script src="https://cdn.jsdelivr.net/npm/dplayer/dist/DPlayer.min.js"></script>
+    
+    <script>
+						  
+	var source="$url"
+        // 初始化 DPlayer
+        const dp = new DPlayer({
+            container: document.getElementById('dplayer'), // 容器元素
+            video: {
+                url: source, // 替换为你的 m3u8 地址
+                type: '${player}', // 明确指定视频类型为 HLS
+            },
+			lang:'zh-cn'
+            // 可选：开启弹幕功能（若需直播弹幕，需自建WebSocket后端）
+           
+            // 可选：开启直播模式（如果播放的是直播流）
+            // live: true,
+            // 可选：自定义主题色
+            // theme: '#FADFA3'
+        });
+        
+        // 你可以通过 dp 对象控制播放器，例如 dp.play()、dp.pause()
+        console.log('播放器实例:', dp);
+		dp.fullScreen.request('web');
+		dp.play()
+    </script>
+</body>
+</html>
 """.trimIndent()
             call.respondText(
                 contentType = ContentType.parse("text/html"), text = html
