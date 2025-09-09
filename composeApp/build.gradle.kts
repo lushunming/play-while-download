@@ -4,7 +4,7 @@ val hikariCpVersion = "5.0.1"
 val flywayVersion = "8.5.4"
 val logback_version = "1.4.14"
 val koin_version = "4.0.3"
-version = "1.0.6"
+version = "1.0.7"
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.composeMultiplatform)
@@ -93,6 +93,9 @@ kotlin {
 compose.desktop {
     application {
         mainClass = "cn.com.lushunming.MainKt"
+        buildTypes.release.proguard {
+            configurationFiles.from(project.file("compose-desktop.pro"))
+        }
 
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
@@ -137,3 +140,4 @@ tasks.register<Exec>("convey") {
     commandLine("conveyor", "make", "--output-dir", dir.get(), "site")
     dependsOn( "jvmJar","writeConveyorConfig")
 }
+
