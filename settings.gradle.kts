@@ -35,9 +35,9 @@ dependencyResolutionManagement {
 buildscript {
     repositories {
 
-        maven(
+       /* maven(
             "https://mirrors.huaweicloud.com/repository/maven/"
-        )
+        )*/
         maven("https://jogamp.org/deployment/maven")
 
 
