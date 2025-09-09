@@ -27,7 +27,7 @@ jobs:
     - name: Grant execute permission to gradlew
       run: chmod +x ./gradlew  # 为 gradlew 添加可执行权限
     - name: Build with Gradle Wrapper
-      run: ./gradlew jvmJar
+      run: ./gradlew :composeApp:jvmJar
 
 
 
