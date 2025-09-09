@@ -25,7 +25,32 @@
 -dontwarn  jogamp.newt.swt.**
 -keep  class jogamp.newt.swt.** { *; }
 -dontwarn  io.netty.**
--keep  class io.netty.** { *; }
+# Keep Netty classes and their members
+-keep class io.netty.** { *; }
+
+# Keep constructors and methods of specific Netty components
+-keep class io.netty.buffer.Unpooled { *; }
+-keep class io.netty.handler.codec.** { *; }
+-keep class io.netty.channel.** { *; }
+-keep class io.netty.util.concurrent.** { *; }
+
+# Preserve classes that might be loaded dynamically via reflection
+-keep class sun.misc.Unsafe { *; }
+-keep class org.jctools.queues.** { *; }
+-keep class io.netty.util.internal.Cleaner { *; }
+-keep class io.netty.util.internal.PlatformDependent { *; }
+
+# Handle potential issues with direct buffer allocation
+-keep class io.netty.buffer.AbstractByteBuf {
+    <init>(int);
+}
+
+# Keep annotations, if used for reflection
+-keepattributes Signature, InnerClasses, EnclosingMethod, Exceptions, SourceFile, LineNumberTable, Deprecated, *Annotation*
+
+# Optional: If using specific Netty transports (e.g., Epoll, KQueue)
+-keep class io.netty.channel.epoll.** { *; }
+-keep class io.netty.channel.kqueue.** { *; }
 -dontwarn  com.zaxxer.hikari.**
 -keep  class com.zaxxer.hikari.** { *; }
 -dontwarn  com.jogamp.**
@@ -135,3 +160,5 @@ volatile <fields>;
 }
 
 #-addconfigurationdebugging
+
+-keep  class db.migration.** {*;}
