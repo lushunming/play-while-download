@@ -2,16 +2,19 @@ package cn.com.lushunming.server
 
 import androidx.lifecycle.viewModelScope
 import cn.com.lushunming.models.DownloadProgressStatus
-import cn.com.lushunming.util.Constant.batchSize
+import cn.com.lushunming.util.Constant
 import cn.com.lushunming.util.Constant.maxRetries
 import cn.com.lushunming.util.HttpClientUtil
 import cn.com.lushunming.util.Util
 import cn.com.lushunming.viewmodel.TaskViewModel
 import io.ktor.client.statement.*
 import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.channelFlow
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import okio.FileSystem
 import okio.Path.Companion.toOkioPath
 import org.koin.java.KoinJavaComponent.inject
@@ -151,35 +154,48 @@ class M3U8Downloader(private val outputDir: String) {
     }
 
 
-
     suspend fun download(
         tsUrls: List<String>, headers: Map<String, String>, dir: File, taskViewModel: TaskViewModel
     ): Flow<DownloadProgressStatus> {
-        return flow {
-
-            emit(DownloadProgressStatus.Progress(0))
-            val batches = tsUrls.chunked(batchSize)
+        return channelFlow {
+            val semaphore = Semaphore(Constant.batchSize);
+            send(DownloadProgressStatus.Progress(0))
+            val progressChannel = Channel<Long>()
             val total = tsUrls.size
+            CoroutineScope(Dispatchers.IO).launch {
 
-            batches.forEachIndexed { batchIndex, batch ->
+                var lastEmitTime = 0L
+                val emitInterval = 100 // 毫秒，控制UI更新频率
+                var currentProgress = 0L
+                for (bytes in progressChannel) {
+                    val currentTime = System.currentTimeMillis()
+                    currentProgress += bytes
+                    // 每100毫秒或累计超过1%时更新
+                    if (currentTime - lastEmitTime >= emitInterval) {
+                        logger.info("已下载 ${currentProgress * 100 / total} %")
 
-                val deferredList = batch.mapIndexed { innerIndex, url ->
-                    taskViewModel.viewModelScope.async(Dispatchers.IO) {
-                        val globalIndex = batchIndex * batchSize + innerIndex + 1
-                        downloadWithRetry(url, headers, globalIndex, dir)
+                        send(DownloadProgressStatus.Progress((currentProgress * 100 / total).toInt()))
+                        lastEmitTime = currentTime
+
                     }
                 }
-                deferredList.awaitAll()
-                // onProgress(min((batchIndex) * batchSize + batch.size, total), total)
-                emit(
-                    DownloadProgressStatus.Progress(
-                        (batchIndex * batchSize + batch.size) * 100 / total.floorDiv(
-                            1
-                        )
-                    )
-                )
             }
-            emit(DownloadProgressStatus.Done(dir))
+
+            val deferredList = tsUrls.mapIndexed { innerIndex, url ->
+                semaphore.withPermit {
+                    taskViewModel.viewModelScope.async(Dispatchers.IO) {
+                        val globalIndex = innerIndex + 1
+                        downloadWithRetry(url, headers, globalIndex, dir)
+                        progressChannel.send(1)
+                    }
+                }
+            }
+            deferredList.awaitAll()
+            // onProgress(min((batchIndex) * batchSize + batch.size, total), total)
+          
+            progressChannel.close()
+
+            send(DownloadProgressStatus.Done(dir))
         }.catch {
             logger.info("下载失败: ${it.message}")
             emit(DownloadProgressStatus.Error(it))
@@ -273,6 +289,7 @@ class M3U8Downloader(private val outputDir: String) {
 
         File(dir, "local.m3u8").writeText(m3u8Content)
     }
+
     fun mergeTsFiles(inputDir: File, outputFile: File) {
         FileOutputStream(outputFile).use { output ->
             inputDir.listFiles { _, name ->
@@ -286,7 +303,6 @@ class M3U8Downloader(private val outputDir: String) {
     }
 
 }
-
 
 
 data class M3U8Info(
