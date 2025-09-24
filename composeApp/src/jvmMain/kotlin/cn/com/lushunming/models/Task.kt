@@ -30,8 +30,8 @@ enum class DownloadStatus {
 object Tasks : Table("tasks") {
     val id = varchar("id", 255)
     val name = varchar("name", 1000)
-    val url = varchar("url", 1000)
-    val oriUrl = varchar("oriUrl", 1000)
+    val url = varchar("url", 4000)
+    val oriUrl = varchar("oriUrl", 4000)
     val type = varchar("type", 255)
     val progress = integer("progress")
     val status = integer("status")

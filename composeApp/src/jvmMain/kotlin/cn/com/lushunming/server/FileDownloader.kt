@@ -98,8 +98,10 @@ class FileDownloader(private val outputDir: String) {
                     CoroutineScope(Dispatchers.IO).launch {
                         val tmpHeaders = headers.toMutableMap()
                         tmpHeaders.put(HttpHeaders.Range, "bytes=$chunkStart-$chunkEnd")
-                        // 异步下载数据块
-                        DownloadUtil.downloadWithRetry(url, tmpHeaders, dir, "${chunkStart}-${chunkEnd}.video")
+                        if (!File("${chunkStart}-${chunkEnd}.video").exists()) {
+                            // 异步下载数据块
+                            DownloadUtil.downloadWithRetry(url, tmpHeaders, dir, "${chunkStart}-${chunkEnd}.video")
+                        }
                         logger.info("下载完成: ${chunkStart}-${chunkEnd}")
                         progressChannel.send(chunkEnd - chunkStart + 1)
 

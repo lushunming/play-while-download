@@ -11,6 +11,7 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpHeaders
+import io.ktor.http.headers
 import io.ktor.server.http.content.CompressedFileType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -171,8 +172,9 @@ class TaskViewModel() : ViewModel() {
      * 请求文件获取文件类型，文件大小，是否可以分片，以及文件名
      */
     suspend fun getDownloadInfo(urlParam: String, headerParam: MutableMap<String, String>): DownloadInfo {
-        val headers=mutableMapOf<String, String>()
-        headerParam.forEach { (key, value) ->{headers[key]=value} }
+
+
+        val headers= headerParam.toMutableMap()
 
         headers.put(HttpHeaders.Range, "bytes=0-1024")
         val res = HttpClientUtil.get(urlParam, headers)
@@ -188,7 +190,7 @@ class TaskViewModel() : ViewModel() {
 
         // 如果 Content-Disposition 中未找到文件名，则从 URL 中提取
         if (fileName.isNullOrEmpty()) {
-            fileName = urlParam.substringAfterLast('/')
+            fileName = urlParam.substringAfterLast('/').substringBefore('?')
         }
         val fileType = getFileType(contentType, isM3u8);
 
