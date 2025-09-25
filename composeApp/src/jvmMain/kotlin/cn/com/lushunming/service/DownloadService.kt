@@ -21,20 +21,17 @@ class DownloadService(val viewModel: TaskViewModel) {
         //   val info = getDownloadInfo(urlParam, headerParam);
         val type = "Unknown";
 
-        val task = Task(
-            id, fileName, url, urlParam, type, 0, DownloadStatus.DOWNLOADING
-        )
+
         val dir = downloadPath + File.separator + Util.md5(urlParam)
+        val task = Task(
+            id, fileName, url, urlParam, type, 0, dir, DownloadStatus.DOWNLOADING
+        )
         File(dir).mkdirs()
         val headerFile = File(dir, "header.tmp")
         headerFile.writeText(Util.json(headerParam))
         viewModel.startDownload(task, dir)
-
-
         viewModel.addTask(
-            Task(
-                id, fileName, url, urlParam, type, 0, DownloadStatus.DOWNLOADING
-            )
+            task
         )
     }
 

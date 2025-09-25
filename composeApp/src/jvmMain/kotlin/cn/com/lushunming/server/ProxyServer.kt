@@ -1,5 +1,6 @@
 package cn.com.lushunming.server
 
+import cn.com.lushunming.service.TaskService
 import cn.com.lushunming.util.HttpClientUtil
 import cn.com.lushunming.util.Util
 import com.google.gson.Gson
@@ -38,6 +39,7 @@ class ProxyServer {
     ) {
 
         try {
+
             logger.info("--proxyMultiThread: THREAD_NUM: $THREAD_NUM")
             logger.info("--proxyMultiThread: url: $url")
             logger.info("--proxyMultiThread: headers: ${Gson().toJson(headers)}")
@@ -141,9 +143,5 @@ class ProxyServer {
         return body
     }
 
-
-    private suspend fun downloadRange(
-        url: String, headerNew: Map<String, String>
-    ): HttpResponse = HttpClientUtil.get(url, headerNew)
 
 }

@@ -30,6 +30,7 @@ class TaskService {
                 it[Tasks.type] = task.type
                 it[Tasks.progress] = task.progress
                 it[Tasks.status] = task.status.ordinal
+                it[Tasks.downloadPath] = task.downloadPath
             }
         }
     }
@@ -55,6 +56,7 @@ class TaskService {
         progress = row[Tasks.progress],
         status = DownloadStatus.entries[row[Tasks.status]],
         oriUrl = row[Tasks.oriUrl],
+        downloadPath = row[Tasks.downloadPath],
     )
 
     suspend fun deleteTask(id: String?) {

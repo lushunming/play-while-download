@@ -12,6 +12,7 @@ data class Task(
     val oriUrl: String, //原来的URL
     val type: String, //m3u8 or mp4
     val progress: Int = 0,
+    val downloadPath: String,
     val status: DownloadStatus = DownloadStatus.PENDING,
 )
 
@@ -36,6 +37,7 @@ object Tasks : Table("tasks") {
     val progress = integer("progress")
     val status = integer("status")
     val message = varchar("message", 1000).nullable()
+    val downloadPath = varchar("downloadPath", 3000)
     override val primaryKey = PrimaryKey(Config.id)
 
 }

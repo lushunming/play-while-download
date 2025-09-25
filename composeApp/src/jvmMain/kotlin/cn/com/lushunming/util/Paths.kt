@@ -1,5 +1,6 @@
 package cn.com.lushunming.util
 
+import dev.dirs.UserDirectories
 import java.io.File
 
 object Paths {
@@ -8,21 +9,9 @@ object Paths {
     private val userDataDir = getUserDataDir()
 
     private fun getUserDataDir() = run {
-        when (UserDataDirProvider.currentOs) {
-            OperatingSystem.Windows -> File(
-                System.getProperty("user.home"), ".cache/$ApplicationName"
-            )
-
-            OperatingSystem.Linux -> File(
-                System.getProperty("user.home"), ".cache/$ApplicationName"
-            )
-
-            OperatingSystem.MacOS -> File(
-                System.getProperty("user.home"), "Library/Caches/$ApplicationName"
-            )
-
-            OperatingSystem.Unknown -> throw RuntimeException("未知操作系统")
-        }
+        File(
+            UserDirectories.get().documentDir, ApplicationName
+        )
     }
 
     private fun File.check(): File {

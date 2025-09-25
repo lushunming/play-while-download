@@ -88,7 +88,7 @@ class DownloadManager {
             downloader.mergeFiles(File(outputDir), mergedFile)
 
 
-            logger.info("所有操作完成！本地M3U8文件位于：${File(outputDir).absolutePath}")
+            logger.info("所有操作完成！本地文件位于：${File(outputDir).absolutePath}")
         } catch (e: Exception) {
             logger.info("发生错误: ${e.message}")
             e.printStackTrace()

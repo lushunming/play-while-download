@@ -4,15 +4,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cn.com.lushunming.server.DownloadManager
 import cn.com.lushunming.service.ConfigService
-import cn.com.lushunming.service.DownloadService
 import cn.com.lushunming.service.TaskService
 import cn.com.lushunming.util.HttpClientUtil
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import io.ktor.client.statement.bodyAsText
-import io.ktor.http.HttpHeaders
-import io.ktor.http.headers
-import io.ktor.server.http.content.CompressedFileType
+import io.ktor.client.statement.*
+import io.ktor.http.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,11 +18,13 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import model.DownloadStatus
 import model.Task
+import org.slf4j.LoggerFactory
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
 
 
 class TaskViewModel() : ViewModel() {
+    val logger = LoggerFactory.getLogger(TaskViewModel::class.java)
     val service = TaskService()
     private val _tasks = MutableStateFlow<List<Task>>(emptyList())
     val tasks: StateFlow<List<Task>> = _tasks.asStateFlow()
@@ -79,9 +78,9 @@ class TaskViewModel() : ViewModel() {
         }
     }
 
-    fun updateFileNameAndType(id: String, fileName: String,fileType: String ) {
+    fun updateFileNameAndType(id: String, fileName: String, fileType: String) {
         viewModelScope.launch {
-            service.updateFileNameAndType(id, fileName,fileType)
+            service.updateFileNameAndType(id, fileName, fileType)
             getTaskList()
         }
     }
@@ -110,42 +109,52 @@ class TaskViewModel() : ViewModel() {
 
             val job = viewModelScope.launch(Dispatchers.IO) {
 
-               val info= getDownloadInfo(task.oriUrl, headerParam)
-                updateFileNameAndType(id, info.fileName,info.fileType)
-                DownloadManager().startDownload(info,
-                    dir, task.oriUrl, headerParam
-                ) { taskId: String, progress: Int, status: cn.com.lushunming.models.DownloadProgressStatus ->
 
-                    if (progress == 100) {
-                        updateStatus(id, model.DownloadStatus.COMPLETED)
+                try {
+                    val info = getDownloadInfo(task.oriUrl, headerParam)
+                    updateFileNameAndType(id, info.fileName, info.fileType)
+                    DownloadManager().startDownload(
+                        info, dir, task.oriUrl, headerParam
+                    ) { taskId: String, progress: Int, status: cn.com.lushunming.models.DownloadProgressStatus ->
+
+                        if (progress == 100) {
+                            updateStatus(id, model.DownloadStatus.COMPLETED)
+                        }
+                        when (status) {
+                            is cn.com.lushunming.models.DownloadProgressStatus.Done -> {
+                                updateStatus(
+                                    id, model.DownloadStatus.COMPLETED
+                                )
+                                updateProgress(id, progress)
+                            }
+
+                            is cn.com.lushunming.models.DownloadProgressStatus.Error -> {
+                                updateStatus(
+                                    id, model.DownloadStatus.ERROR, status.throwable.message
+                                )
+                                jobMap.remove(id)
+                            }
+
+                            cn.com.lushunming.models.DownloadProgressStatus.None -> updateStatus(
+                                id, model.DownloadStatus.PENDING
+                            )
+
+                            is cn.com.lushunming.models.DownloadProgressStatus.Progress -> {
+                                updateStatus(
+                                    id, model.DownloadStatus.DOWNLOADING
+                                )
+                                updateProgress(id, progress)
+                            }
+
+                        }
                     }
-                    when (status) {
-                        is cn.com.lushunming.models.DownloadProgressStatus.Done -> {
-                            updateStatus(
-                                id, model.DownloadStatus.COMPLETED
-                            )
-                            updateProgress(id, progress)
-                        }
-
-                        is cn.com.lushunming.models.DownloadProgressStatus.Error -> {
-                            updateStatus(
-                                id, model.DownloadStatus.ERROR, status.throwable.message
-                            )
-                            jobMap.remove(id)
-                        }
-
-                        cn.com.lushunming.models.DownloadProgressStatus.None -> updateStatus(
-                            id, model.DownloadStatus.PENDING
-                        )
-
-                        is cn.com.lushunming.models.DownloadProgressStatus.Progress -> {
-                            updateStatus(
-                                id, model.DownloadStatus.DOWNLOADING
-                            )
-                            updateProgress(id, progress)
-                        }
-
-                    }
+                } catch (e: Exception) {
+                    //出错了
+                    logger.error("下载出错：${e.message}")
+                    updateStatus(
+                        id, model.DownloadStatus.ERROR, e.message
+                    )
+                    jobMap.remove(id)
                 }
 
             }
@@ -174,12 +183,15 @@ class TaskViewModel() : ViewModel() {
     suspend fun getDownloadInfo(urlParam: String, headerParam: MutableMap<String, String>): DownloadInfo {
 
 
-        val headers= headerParam.toMutableMap()
+        val headers = headerParam.toMutableMap()
 
         headers.put(HttpHeaders.Range, "bytes=0-1024")
         val res = HttpClientUtil.get(urlParam, headers)
 
         val contentType = res.headers[HttpHeaders.ContentType]
+        if (res.status.value > 300) {
+            throw Exception("请求出错，错误码：" + res.status.value.toString())
+        }
         val acceptRanges = res.status.value == 206
         val isM3u8 = res.bodyAsText().startsWith("#EXTM3U")
 
