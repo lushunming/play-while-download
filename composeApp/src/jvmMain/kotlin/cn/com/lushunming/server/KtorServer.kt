@@ -7,12 +7,12 @@ import cn.com.lushunming.server.plugin.configureRouting
 import cn.com.lushunming.util.Constant
 import io.ktor.server.application.Application
 import io.ktor.server.application.log
+import io.ktor.server.cio.CIO
 import io.ktor.server.engine.embeddedServer
-import io.ktor.server.netty.Netty
 
 fun startServer(args: Array<String>) {
     embeddedServer(
-        Netty, port = Constant.port, host = "0.0.0.0", module = Application::module
+        CIO, port = Constant.port, host = "0.0.0.0", module = Application::module
     ).start(wait = true).application.log
 }
 

@@ -32,7 +32,7 @@ import cn.com.lushunming.viewmodel.ConfigViewModel
 import cn.com.lushunming.viewmodel.TaskViewModel
 import model.DownloadStatus
 import model.Task
-import okio.Utf8
+
 import org.koin.compose.koinInject
 import org.koin.java.KoinJavaComponent.inject
 import java.awt.Desktop
@@ -87,7 +87,7 @@ fun Download() {
                 items(downloadTasks, key = { it.id }) { task ->
                     DownloadTaskItem(task = task, onStart = {
                         // 启动下载任务
-                        val path = config.downloadPath
+                        val path = config.downloadPath+ File.separator + task.id
                         taskViewModel.startDownload(task, path)
 
                     }, onPause = {
@@ -246,8 +246,18 @@ fun DownloadTaskItem(
                             )
                         }
                         IconButton(
-                            onClick = { Desktop.getDesktop().browse(URI.create("http://localhost:3800/video?url=${Util.base64Encode(task.url.toByteArray(
-                            ))}&type=${task.type}"))}, enabled = (task.progress >= 5)
+                            onClick = {
+                                Desktop.getDesktop().browse(
+                                    URI.create(
+                                        "http://localhost:3800/video?url=${
+                                            Util.base64Encode(
+                                                task.url.toByteArray(
+                                                )
+                                            )
+                                        }&type=${task.type}"
+                                    )
+                                )
+                            }, enabled = (task.progress >= 5)
                         ) {
                             Icon(
                                 Icons.Outlined.PlayArrow,
@@ -270,8 +280,18 @@ fun DownloadTaskItem(
                             )
                         }
                         IconButton(
-                            onClick = { Desktop.getDesktop().browse(URI.create("http://localhost:3800/video?url=${Util.base64Encode(task.url.toByteArray(
-                            ))}&type=${task.type}"))}, enabled = (task.progress >= 5)
+                            onClick = {
+                                Desktop.getDesktop().browse(
+                                    URI.create(
+                                        "http://localhost:3800/video?url=${
+                                            Util.base64Encode(
+                                                task.url.toByteArray(
+                                                )
+                                            )
+                                        }&type=${task.type}"
+                                    )
+                                )
+                            }, enabled = (task.progress >= 5)
                         ) {
                             Icon(
                                 Icons.Outlined.PlayArrow,

@@ -15,12 +15,16 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
-import okio.FileSystem
-import okio.Path.Companion.toOkioPath
+import kotlinx.io.files.FileSystem
+import kotlinx.io.files.SystemFileSystem
+import org.flywaydb.core.internal.util.FileCopyUtils
+
 import org.koin.java.KoinJavaComponent.inject
 import org.slf4j.LoggerFactory
 import java.io.File
 import java.io.FileOutputStream
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 import javax.crypto.Cipher
 import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
@@ -244,7 +248,8 @@ class M3U8Downloader(private val outputDir: String) {
         inputDir.listFiles { _, name -> name.startsWith("segment") && name.endsWith(".ts") }?.forEach { tsFile ->
             val decryptedFile = File(outputDir, "decrypted_${tsFile.name}")
             if (key == null) {
-                FileSystem.SYSTEM.copy(tsFile.toOkioPath(), decryptedFile.toOkioPath())
+
+                Files.copy(tsFile.toPath(), decryptedFile.toPath(), StandardCopyOption.REPLACE_EXISTING)
             } else {
                 TSDecryptor.decryptTSFile(tsFile, decryptedFile, key, ivBytes)
             }

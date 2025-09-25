@@ -4,7 +4,7 @@ val hikariCpVersion = "5.0.1"
 val flywayVersion = "8.5.4"
 val logback_version = "1.4.14"
 val koin_version = "4.0.3"
-version = "1.1.0"
+version = "1.1.1"
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.composeMultiplatform)
@@ -47,23 +47,20 @@ kotlin {
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
             implementation("io.ktor:ktor-server-cors")
-            implementation("io.ktor:ktor-server-core")
-            /*
+            implementation("io.ktor:ktor-server-core")/*
                         implementation("io.ktor:ktor-server-swagger")
             */
             implementation("io.ktor:ktor-server-call-logging")
             implementation("io.ktor:ktor-server-content-negotiation")
             implementation("io.ktor:ktor-serialization-gson")
-            implementation("io.ktor:ktor-server-netty")
-            /* implementation("io.ktor:ktor-server-config-yaml")
-             implementation("io.ktor:ktor-server-websockets")*/
-            /*
+            implementation("io.ktor:ktor-server-cio")/* implementation("io.ktor:ktor-server-config-yaml")
+             implementation("io.ktor:ktor-server-websockets")*//*
                         implementation("io.ktor:ktor-server-thymeleaf")
             */
 
             implementation("io.ktor:ktor-client-core")
-            implementation("io.ktor:ktor-client-okhttp")
-            implementation("io.ktor:ktor-client-okhttp-jvm:3.2.2")
+            implementation("io.ktor:ktor-client-java")
+
             implementation("io.ktor:ktor-client-logging")
             //db
             implementation("org.jetbrains.exposed:exposed-core:1.0.0-beta-5")
@@ -76,8 +73,10 @@ kotlin {
             implementation("io.insert-koin:koin-compose-viewmodel:${koin_version}")
             implementation("io.insert-koin:koin-compose-viewmodel-navigation:${koin_version}")
             implementation("io.insert-koin:koin-core:${koin_version}")
-            // Use the configurations created by the Conveyor plugin to tell Gradle/Conveyor where to find the artifacts for each platform.
 
+            // Use the configurations created by the Conveyor plugin to tell Gradle/Conveyor where to find the artifacts for each platform.
+            //directories
+            implementation("dev.dirs:directories:26")
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -137,6 +136,6 @@ tasks.register<Exec>("convey") {
     val dir = layout.buildDirectory.dir("packages")
     outputs.dir(dir)
     commandLine("conveyor", "make", "--output-dir", dir.get(), "site")
-    dependsOn( "jvmJar","writeConveyorConfig")
+    dependsOn("jvmJar", "writeConveyorConfig")
 }
 
