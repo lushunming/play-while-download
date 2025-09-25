@@ -200,3 +200,10 @@ class FileDownloader(private val outputDir: String) {
 
 }
 
+fun main() {
+    FileDownloader("").mergeFiles(File("C:\\Users\\Administrator\\Downloads\\9ede8540fcdf6a3bdf0bd6fb044d1995"),
+
+        File("C:\\Users\\Administrator\\Downloads\\9ede8540fcdf6a3bdf0bd6fb044d1995\\1.mp4")
+        )
+}
+

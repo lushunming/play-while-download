@@ -3,6 +3,7 @@ enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 pluginManagement {
     repositories {
+        maven("https://mirrors.huaweicloud.com/repository/maven/")
         maven("https://jogamp.org/deployment/maven")
         google {
             mavenContent {
@@ -18,6 +19,7 @@ pluginManagement {
 
 dependencyResolutionManagement {
     repositories {
+        maven("https://mirrors.huaweicloud.com/repository/maven/")
         maven("https://jogamp.org/deployment/maven")
         google {
             mavenContent {
