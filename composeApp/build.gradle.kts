@@ -4,7 +4,7 @@ val hikariCpVersion = "5.0.1"
 val flywayVersion = "8.5.4"
 val logback_version = "1.4.14"
 val koin_version = "4.0.3"
-version = "1.1.3"
+version = "1.1.4"
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.composeMultiplatform)
