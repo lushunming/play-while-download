@@ -82,7 +82,7 @@ fun App() {
                         Icon(
                             Icons.Default.FileOpen, contentDescription = "打开日志"
                         )
-                    }, label = { Text("打开日志") }, selected = currentScreen == null, onClick = {
+                    }, label = { Text("打开日志") }, selected = false, onClick = {
                         Desktop.getDesktop().open(Paths.userDataRoot())
                     })
                 }
