@@ -65,9 +65,9 @@ fun Application.configureRouting() {
     <div id="dplayer"></div>
     
     <!-- 引入 hls.js 库（必须在 DPlayer 之前引入） -->
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/hls.js/1.6.13/hls.js"></script>
     <!-- 引入 DPlayer -->
-    <script src="https://cdn.jsdelivr.net/npm/dplayer/dist/DPlayer.min.js"></script>
+   <script src="https://cdn.bootcdn.net/ajax/libs/dplayer/1.27.1/DPlayer.min.js"></script>
     
     <script>
 						  
