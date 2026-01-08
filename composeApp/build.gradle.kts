@@ -32,7 +32,7 @@ kotlin {
     jvm()
     jvmToolchain {
         languageVersion.set(JavaLanguageVersion.of(21))
-        vendor.set(JvmVendorSpec.JETBRAINS)
+        vendor.set(JvmVendorSpec.GRAAL_VM)
 
     }
     sourceSets {
