@@ -8,6 +8,8 @@ import cn.com.lushunming.util.HttpClientUtil
 import cn.com.lushunming.util.Util
 import cn.com.lushunming.viewmodel.TaskViewModel
 import io.ktor.client.statement.*
+import io.ktor.utils.io.copyTo
+import io.ktor.utils.io.jvm.javaio.copyTo
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -17,6 +19,7 @@ import org.slf4j.LoggerFactory
 import java.io.File
 import java.io.FileOutputStream
 import java.nio.file.Files
+import java.nio.file.Paths
 import java.nio.file.StandardCopyOption
 import javax.crypto.Cipher
 import javax.crypto.spec.IvParameterSpec
@@ -200,8 +203,10 @@ class M3U8Downloader(private val outputDir: String) {
                     continue
                 }
                 val response = HttpClientUtil.get(url, headers)
+
                 file.outputStream().use { outputStream ->
-                    outputStream.write(response.bodyAsBytes())
+                   // outputStream.write(response.bodyAsBytes())
+                    response.bodyAsChannel().copyTo(outputStream)
                 }
                 success = true
             } catch (e: Exception) {

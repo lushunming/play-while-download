@@ -2,6 +2,8 @@ package cn.com.lushunming.util
 
 import cn.com.lushunming.util.Constant.maxRetries
 import io.ktor.client.statement.*
+import io.ktor.utils.io.copyTo
+import io.ktor.utils.io.jvm.javaio.copyTo
 import kotlinx.coroutines.delay
 import org.slf4j.LoggerFactory
 import java.io.File
@@ -26,7 +28,8 @@ object DownloadUtil {
                 }
                 val response = HttpClientUtil.get(url, headers)
                 file.outputStream().use { outputStream ->
-                    outputStream.write(response.bodyAsBytes())
+                    //outputStream.write(Bytes())
+                    response.bodyAsChannel().copyTo(outputStream)
                 }
                 success = true
             } catch (e: Exception) {
