@@ -4,7 +4,7 @@
 #-addconfigurationdebugging
 -ignorewarnings
 # 关闭优化
-#-dontoptimize
+-dontoptimize
 
 
 -keepclasseswithmembernames class * { native <methods>; }
