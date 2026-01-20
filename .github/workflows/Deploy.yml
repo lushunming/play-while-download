@@ -27,6 +27,8 @@ jobs:
           
       - name: Make gradlew executable
         run: chmod +x ./gradlew
+      - name: print config
+        run: ./gradlew :composeApp:printConveyorConfig
       - name: Build with Gradle Wrapper
         run: ./gradlew :composeApp:proguardReleaseJars
       - name: Run Conveyor
