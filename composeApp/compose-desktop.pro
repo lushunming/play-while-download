@@ -1,9 +1,12 @@
 # 保留 Kotlin 相关的重要元数据
 -keepattributes RuntimeVisibleAnnotations, RuntimeInvisibleAnnotations, InnerClasses, Signature, Exceptions
 -dontskipnonpubliclibraryclasses
-
+#-addconfigurationdebugging
 -ignorewarnings
--libraryjars  <java.home>/jmods/java.base.jmod(!**.jar;!module-info.class)
+# 关闭优化
+#-dontoptimize
+
+
 -keepclasseswithmembernames class * { native <methods>; }
 -keepclassmembers enum * { public static **[] values(); public static ** valueOf(java.lang.String); }
 -dontwarn  org.h2.**
@@ -128,8 +131,7 @@ volatile <fields>;
 # 忽略关于这些类的警告
 -dontwarn com.jogamp.opengl.swt.**
 -dontwarn org.eclipse.swt.widgets.**
-# 关闭优化
--dontoptimize
+
 
 -keep class org.jetbrains.exposed.**
 -keep class uk.co.caprica.vlcj.**
@@ -159,6 +161,6 @@ volatile <fields>;
     public static ** create(...);
 }
 
-#-addconfigurationdebugging
+
 
 -keep  class db.migration.** {*;}

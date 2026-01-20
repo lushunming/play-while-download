@@ -28,7 +28,7 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x ./gradlew
       - name: Build with Gradle Wrapper
-        run: ./gradlew :composeApp:jvmJar
+        run: ./gradlew :composeApp:proguardReleaseJars
       - name: Run Conveyor
         uses: hydraulic-software/conveyor/actions/build@v19.0
         env:
