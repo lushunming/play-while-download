@@ -4,7 +4,7 @@ val hikariCpVersion = "5.0.1"
 val flywayVersion = "8.5.4"
 val logback_version = "1.4.14"
 val koin_version = "4.0.3"
-version = "1.1.8"
+version = "1.1.9"
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.composeMultiplatform)
@@ -68,7 +68,8 @@ kotlin {
             implementation("com.h2database:h2:2.2.224")
             implementation("com.zaxxer:HikariCP:${hikariCpVersion}")
             implementation("org.flywaydb:flyway-core:${flywayVersion}")
-            implementation("network.chaintech:compose-multiplatform-media-player:1.0.42")
+           // implementation("network.chaintech:compose-multiplatform-media-player:1.0.53")
+            implementation("org.openani.mediamp:mediamp-all:0.0.30")
             implementation("io.insert-koin:koin-compose:${koin_version}")
             implementation("io.insert-koin:koin-compose-viewmodel:${koin_version}")
             implementation("io.insert-koin:koin-compose-viewmodel-navigation:${koin_version}")
