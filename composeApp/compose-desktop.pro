@@ -164,3 +164,4 @@ volatile <fields>;
 
 
 -keep  class db.migration.** {*;}
+-keep  class org.openani.mediamp.** {*;}
