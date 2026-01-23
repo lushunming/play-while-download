@@ -50,12 +50,12 @@ fun Video(url: String, onClose: () -> Unit) {
         onCloseRequest = onClose, title = "视频播放", state = windowState, onKeyEvent = { event ->
             when {
                 (event.key == Key.DirectionLeft && event.type == KeyEventType.KeyUp) -> {
-                    player.seekTo(player.getCurrentPositionMillis() - 5000)
+                    player.skip(-10000)
                     true
                 }
 
                 (event.key == Key.DirectionRight && event.type == KeyEventType.KeyUp) -> {
-                    player.seekTo(player.getCurrentPositionMillis() + 5000)
+                    player.skip(10000)
                     true
                 }
 
@@ -112,14 +112,14 @@ fun Video(url: String, onClose: () -> Unit) {
 
                     // 后退按钮
                     IconButton(onClick = {
-                        player.seekTo(player.getCurrentPositionMillis() - 10000)
+                        player.skip(-10000)
                     }) {
                         Icon(Icons.Default.Replay10, contentDescription = "后退10秒")
                     }
 
                     // 快进按钮
                     IconButton(onClick = {
-                        player.seekTo(player.getCurrentPositionMillis() + 10000)
+                        player.skip(10000)
                     }) {
                         Icon(Icons.Default.Forward10, contentDescription = "快进10秒")
                     }
