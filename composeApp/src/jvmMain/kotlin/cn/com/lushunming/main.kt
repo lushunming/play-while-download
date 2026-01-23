@@ -15,10 +15,13 @@ import play_while_download.composeapp.generated.resources.icon_main
 
 fun main() {
 
-    CoroutineScope(Dispatchers.IO).launch {
+    val job = CoroutineScope(Dispatchers.IO).launch {
         System.setProperty("logback.configurationFile", Res.getUri("files/logback.xml"));
         System.setProperty("LOG_HOME", Paths.log());
         DatabaseFactory.connectAndMigrate()
+
+    }
+    job.invokeOnCompletion {
         startServer(
             args = emptyArray()
         );

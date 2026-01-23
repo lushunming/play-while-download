@@ -1,6 +1,7 @@
 package cn.com.lushunming.views
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
 import androidx.compose.material.Slider
@@ -111,14 +112,14 @@ fun Video(url: String, onClose: () -> Unit) {
 
                     // 后退按钮
                     IconButton(onClick = {
-                        player.seekTo(player.getCurrentPositionMillis() - 5000)
+                        player.seekTo(player.getCurrentPositionMillis() - 10000)
                     }) {
                         Icon(Icons.Default.Replay10, contentDescription = "后退10秒")
                     }
 
                     // 快进按钮
                     IconButton(onClick = {
-                        player.seekTo(player.getCurrentPositionMillis() + 5000)
+                        player.seekTo(player.getCurrentPositionMillis() + 10000)
                     }) {
                         Icon(Icons.Default.Forward10, contentDescription = "快进10秒")
                     }
@@ -143,11 +144,7 @@ fun Video(url: String, onClose: () -> Unit) {
                         }, valueRange = 0f..1f, modifier = Modifier.width(100.dp)
                     )
 
-                    // 时间显示
-                    Text(
-                        text = "${formatTime(currentPosition)} / ${formatTime(duration)}",
-                        modifier = Modifier.align(Alignment.CenterVertically)
-                    )
+
                 }
 
                 // 进度条
@@ -160,6 +157,22 @@ fun Video(url: String, onClose: () -> Unit) {
                     valueRange = 0f..100f,
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)
                 )
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    // 时间显示
+                    Text(
+                        text = "${formatTime(currentPosition)} ",
+                        modifier = Modifier.align(Alignment.CenterVertically)
+                    )  // 时间显示
+                    Text(
+                        text = "${formatTime(duration)} ",
+                        modifier = Modifier.align(Alignment.CenterVertically)
+                    )
+
+                }
+
             }
         }
     }
