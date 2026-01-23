@@ -69,7 +69,11 @@ kotlin {
             implementation("com.zaxxer:HikariCP:${hikariCpVersion}")
             implementation("org.flywaydb:flyway-core:${flywayVersion}")
            // implementation("network.chaintech:compose-multiplatform-media-player:1.0.53")
-            implementation("org.openani.mediamp:mediamp-all:0.0.30")
+            implementation("org.openani.mediamp:mediamp-all:0.0.30" ){
+
+                exclude("net.java.dev.jna","jna-platform")
+                exclude("net.java.dev.jna","jna")
+            }
             implementation("io.insert-koin:koin-compose:${koin_version}")
             implementation("io.insert-koin:koin-compose-viewmodel:${koin_version}")
             implementation("io.insert-koin:koin-compose-viewmodel-navigation:${koin_version}")
