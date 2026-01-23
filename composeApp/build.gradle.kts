@@ -100,7 +100,7 @@ compose.desktop {
         mainClass = "cn.com.lushunming.MainKt"
         buildTypes.release.proguard {
             configurationFiles.from(project.file("compose-desktop.pro"))
-           // joinOutputJars.set(true)
+            joinOutputJars.set(true)
         }
 
         nativeDistributions {
