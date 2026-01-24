@@ -15,18 +15,22 @@ import play_while_download.composeapp.generated.resources.icon_main
 
 fun main() {
 
-    val job = CoroutineScope(Dispatchers.IO).launch {
-        System.setProperty("logback.configurationFile", Res.getUri("files/logback.xml"));
-        System.setProperty("LOG_HOME", Paths.log());
-        DatabaseFactory.connectAndMigrate()
+    /*val job = CoroutineScope(Dispatchers.IO).launch {
+
 
     }
     job.invokeOnCompletion {
-        startServer(
-            args = emptyArray()
-        );
-    }
+
+    }*/
     application {
+        CoroutineScope(Dispatchers.IO).launch {
+            System.setProperty("logback.configurationFile", Res.getUri("files/logback.xml"));
+            System.setProperty("LOG_HOME", Paths.log());
+            DatabaseFactory.connectAndMigrate()
+            startServer(
+                args = emptyArray()
+            )
+        }
 
         Window(
             onCloseRequest = ::exitApplication, icon = BitmapPainter(
