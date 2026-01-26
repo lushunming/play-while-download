@@ -7,6 +7,8 @@ import androidx.compose.material.IconButton
 import androidx.compose.material.Slider
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.VolumeOff
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -47,15 +49,17 @@ fun Video(url: String, onClose: () -> Unit) {
     }
 
     Window(
-        onCloseRequest = onClose, title = "视频播放", state = windowState, onKeyEvent = { event ->
+        onCloseRequest = onClose, title = "视频播放", state = windowState, onPreviewKeyEvent = { event ->
             when {
-                (event.key == Key.DirectionLeft && event.type == KeyEventType.KeyUp) -> {
-                    player.skip(-10000)
+               (event.key == Key.DirectionLeft && event.type == KeyEventType.KeyDown) -> {
+                   val currentPosition = player.getCurrentPositionMillis()
+                   player.seekTo(currentPosition - 10000) // 快进10秒
                     true
                 }
 
-                (event.key == Key.DirectionRight && event.type == KeyEventType.KeyUp) -> {
-                    player.skip(10000)
+                (event.key == Key.DirectionRight && event.type == KeyEventType.KeyDown) -> {
+                    val currentPosition = player.getCurrentPositionMillis()
+                    player.seekTo(currentPosition + 10000) // 快进10秒
                     true
                 }
 
@@ -130,7 +134,7 @@ fun Video(url: String, onClose: () -> Unit) {
                         player.features[AudioLevelController]?.setVolume(if (isMuted) 0f else volume)
                     }) {
                         Icon(
-                            imageVector = if (isMuted || volume == 0f) Icons.Default.VolumeOff else Icons.Default.VolumeUp,
+                            imageVector = if (isMuted || volume == 0f) Icons.AutoMirrored.Filled.VolumeOff else Icons.AutoMirrored.Filled.VolumeUp,
                             contentDescription = if (isMuted) "取消静音" else "静音"
                         )
                     }
